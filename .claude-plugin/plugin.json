@@ -1,0 +1,14 @@
+{
+  "name": "loyjoy-headless",
+  "description": "Inspect, edit, compare, and publish LoyJoy agent configurations through the LoyJoy Manager MCP server.",
+  "version": "0.1.0",
+  "author": {
+    "name": "LoyJoy GmbH",
+    "email": "sebastian.deisel@loyjoy.com",
+    "url": "https://loyjoy.com"
+  },
+  "homepage": "https://github.com/loyjoy/loyjoy-headless",
+  "repository": "https://github.com/loyjoy/loyjoy-headless",
+  "license": "Apache-2.0",
+  "keywords": ["loyjoy", "mcp", "bpmn", "agent-management"]
+}
