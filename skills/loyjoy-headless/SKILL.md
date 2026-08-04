@@ -54,7 +54,6 @@ Pick the first tool in this list that can express the change:
 
 `process_put_xml` advertises "safety validation", and that is true but narrow: the server checks that the document you send is schema-valid and that the revision is current. It cannot check that the document is still *correct*. Everything below passes schema validation and breaks the agent anyway:
 
-- A regenerated or dropped `loyjoy:id-src` breaks analytics and the staging-to-production lineage. Nothing reports it.
 - An `id` that changed without its dependents leaves dangling `*BpmnProcessId` / `*BpmnSubProcessId` jump targets and orphaned i18n keys of the form `<slot>/<parent-uuid>`. Only some are model-checked, so the rest surface as a broken conversation in production.
 - A removed element leaves behind the jump targets, DMN entries, and assets that `process_remove_element` would have cleaned up.
 - A hand-written `*Aes` value destroys a secret irrecoverably.
@@ -76,7 +75,7 @@ Templates are read-only scaffolds that show how a use case is expressed in BPMN 
 3. When you need the whole catalogue, call `templates_list` with the required `locale` (`de` or `en`). The response can be large; filter mentally by title and tags before reading further.
 4. Call `template_get_xml` with the chosen `template_id` to retrieve the full BPMN XML.
 5. Read the template XML to learn which subProcess `loyjoy:type` values, attributes, i18n keys, `loyjoy:dataCollectionQuestion` shapes, and jump-reference patterns implement the use case.
-6. Use the template as a structural reference only. Never call `process_put_xml` with a template's XML: every copied element needs a fresh `id`, a fresh `loyjoy:id-src`, and every dependent i18n key of the form `<slot>/<parent-uuid>` and every UUID reference (`*BpmnProcessId`, `*BpmnSubProcessId`) must be regenerated to match the target process.
+6. Use the template as a structural reference only. Never call `process_put_xml` with a template's XML: every copied element needs a fresh `id`,  and every dependent i18n key of the form `<slot>/<parent-uuid>` and every UUID reference (`*BpmnProcessId`, `*BpmnSubProcessId`) must be regenerated to match the target process.
 7. Never publish a template and never edit it through any `process_*` write tool; templates are not staging processes.
 
 
@@ -153,7 +152,7 @@ Before following these steps, answer one question: which specific narrow tool fa
 2. Make the smallest change that satisfies the request.
 3. Preserve unrelated elements, IDs, namespaces, process metadata, and unknown configuration.
 4. Keep the process ID unchanged and the process version set to `staging`.
-5. Never regenerate `id` or `loyjoy:id-src` values on existing elements. `id-src` is opaque lineage; changing it breaks analytics and the staging-to-production link.
+5. Never regenerate `id` or `loyjoy:id-src` values on existing elements. `id-src` is opaque lineage.
 6. When an element's `id` must change, update every dependent reference: `loyjoy:i18n` keys of the form `<slot>/<parent-uuid>`, and every attribute whose name ends in `BpmnProcessId`, `BpmnSubProcessId`, or is otherwise a UUID reference (for example `loyjoy:openingHoursOpenJumpBpmnSubProcessId`, `loyjoy:liveExitJumpAutoBpmnSubProcessId`, `loyjoy:jumpDecision1..7BpmnSubProcessId`). Only some are model-checked; dangling references may not surface until runtime.
 7. Never alter an attribute whose name ends in `Aes`. Use a dedicated non-XML tool for secret changes when one exists; otherwise explain that the secret cannot be changed through raw XML editing.
 8. Summarize the intended changes before saving when they are broad, ambiguous, or potentially disruptive.
