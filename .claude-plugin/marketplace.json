@@ -2,34 +2,17 @@
   "name": "loyjoy-headless",
   "owner": {
     "name": "LoyJoy GmbH",
-    "email": "sebastian.deisel@loyjoy.com",
     "url": "https://loyjoy.com"
   },
-  "description": "Safely manage LoyJoy agents through MCP",
   "plugins": [
     {
       "name": "loyjoy-headless",
       "source": ".",
-      "displayName": "LoyJoy headless",
-      "description": "Inspect, edit, compare, and publish LoyJoy agent configurations through the LoyJoy Manager MCP server. Emphasizes tenant confirmation, targeted BPMN XML inspection, narrow safe write tools, staging/production diffs, and explicit publishing approval.",
+      "description": "Inspect, edit, compare, and publish LoyJoy agent configurations through the LoyJoy Manager MCP server.",
       "version": "0.1.0",
-      "author": {
-        "name": "LoyJoy GmbH",
-        "email": "sebastian.deisel@loyjoy.com",
-        "url": "https://loyjoy.com"
-      },
       "homepage": "https://github.com/loyjoy/loyjoy-headless",
-      "repository": "https://github.com/loyjoy/loyjoy-headless",
       "license": "Apache-2.0",
-      "keywords": [
-        "loyjoy",
-        "mcp",
-        "bpmn",
-        "agent-management",
-        "headless",
-        "staging",
-        "publishing"
-      ],
+      "keywords": ["loyjoy", "mcp", "bpmn", "agent-management"],
       "category": "developer-tools"
     }
   ]
