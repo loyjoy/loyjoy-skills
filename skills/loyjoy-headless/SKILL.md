@@ -16,9 +16,11 @@ Every later step operates against whatever tenant the current login points at. A
 
 1. Call `tenant_meta` to retrieve the active tenant.
 2. Show the user the tenant name (and any other identifying metadata the tool returns).
-3. Ask the user to confirm that the login is valid and this is the intended tenant with a clickable button (Elicitation-Tool).
+3. Ask the user to confirm that the login is valid and this is the intended tenant with a clickable button for yes/no.
 4. Proceed only after explicit confirmation. If the user does not confirm, stop and ask them to fix the login or tenant selection before continuing.
 Do not skip this gate and do not treat an unrelated instruction as confirmation. Re-confirm if anything suggests the login or tenant changed mid-task.
+
+The server filters the visible tool set by the current user's role (`OWNER`, `EDITOR`, `PROCESSES_EDITOR`, `PROCESSES_VIEWER`, `ANALYTICS_VIEWER`, `REVISION`, ...). If a tool referenced by this skill is not available in the current session, do not work around it and do not fall back to a broader tool; report the missing tool to the user and ask them to check the role of the login, so they can decide whether to grant the role or run the task with a different account.
 
 
 ## Check for unpublished staged changes before editing
@@ -29,7 +31,7 @@ Before the first write in any edit task, confirm that staging is in sync with pr
 2. If the diff is empty, continue with the edit task.
 3. If the diff shows changes:
    1. Summarize the pending changes to the user.
-   2. Ask with a clickable button (Elicitation-Tool) whether to publish these pending changes first, before your own edits begin.
+   2. Ask with a clickable button (yes/no) whether to publish these pending changes first, before your own edits begin.
    3. If the user confirms, call `process_publish` with a meaningful comment describing the pending changes, then continue with the edit task.
    4. If the user declines, continue with the edit task without publishing.
 
@@ -127,6 +129,7 @@ Read two more things out of the same match while you are there: the declared typ
 3. Report the returned `previous_*` and `new_*` values so the user can verify the change. This return payload is the main reason narrow tools are easier to work with than a full write: you get a precise before/after per call instead of a revision number.
 4. After all writes for the task are done, call `process_diff(process_id)` again with default arguments (`left=prod`, `right=staging`). Summarize the resulting diff to the user so they can see exactly what will enter production if published — this is the final review artefact and the natural bookend to the pre-edit diff check.
 5. Never invoke `process_publish` unless the user explicitly asked for it.
+
 ## Change structure with add, remove, and move
 
 Structural edits use dedicated add tools for BPMN subprocesses and extension elements, plus generic remove and move tools.
@@ -179,7 +182,7 @@ Do not interpret a request to edit, update, configure, or fix an agent as permis
 
 ## Read-only requests
 
-For inspection, explanation, review, or comparison requests, do not call `process_create`, `process_put_xml`, `process_put_instruction`, `process_put_i18n`, `process_put_list_attribute`, `process_set_attribute`, `process_add_subprocess`, `process_add_extension_element`, `process_remove_element`, `process_move_element`, or `process_publish`. Use `processes_list`, `search`, `process_get_xml_grep`, `process_get_xml`, `process_diff`, `process_get_xml_schema_grep`, `process_get_xml_schema`, `templates_search`, `templates_list`, `template_get_xml`, `template_get_xml_grep`, `template_get_xml_grep_all`, `views_list`, `view_get`, `view_get_xml`, and `analytics_process_get` as needed. `process_diff` is the right tool for "what changed", "what is not live yet", and "compare staging to production" questions.
+For inspection, explanation, review, or comparison requests, do not call `process_create`, `process_put_xml`, `process_put_instruction`, `process_put_i18n`, `process_put_list_attribute`, `process_set_attribute`, `process_add_subprocess`, `process_add_extension_element`, `process_remove_element`, `process_move_element`, or `process_publish`. Use `processes_list`, `process_get_xml_grep`, `process_get_xml`, `process_diff`, `process_get_xml_schema_grep`, `process_get_xml_schema`, `templates_search`, `templates_list`, `template_get_xml`, `template_get_xml_grep`, `template_get_xml_grep_all`, `views_list`, `view_get`, `view_get_xml`, and `analytics_process_get` as needed. `process_diff` is the right tool for "what changed", "what is not live yet", and "compare staging to production" questions.
 
 
 ## Report the outcome
