@@ -21,6 +21,21 @@ Every later step operates against whatever tenant the current login points at. A
 Do not skip this gate and do not treat an unrelated instruction as confirmation. Re-confirm if anything suggests the login or tenant changed mid-task.
 
 
+## Check for unpublished staged changes before editing
+
+Before the first write in any edit task, confirm that staging is in sync with production. Any pre-existing diff will silently ride along with your changes when the process is next published, so surface it and let the user decide.
+
+1. Call `process_diff(process_id)` without `left_version` or `right_version`. The defaults (`left=prod`, `right=staging`) compare production against staging and reveal any changes not yet published.
+2. If the diff is empty, continue with the edit task.
+3. If the diff shows changes:
+   1. Summarize the pending changes to the user.
+   2. Ask with a clickable button (Elicitation-Tool) whether to publish these pending changes first, before your own edits begin.
+   3. If the user confirms, call `process_publish` with a meaningful comment describing the pending changes, then continue with the edit task.
+   4. If the user declines, continue with the edit task without publishing.
+
+Skip this gate on read-only requests (inspection, comparison, explanation) — those don't add to what would ship on the next publish.
+
+
 ## Choose the smallest tool
 
 Pick the first tool in this list that can express the change:
@@ -109,7 +124,7 @@ Read two more things out of the same match while you are there: the declared typ
 1. Locate the target element and its `id` with `process_get_xml_grep` or a focused read.
 2. Call the narrow tool that matches the change (`process_put_instruction`, `process_put_i18n`, `process_put_list_attribute`, `process_set_attribute`).
 3. Report the returned `previous_*` and `new_*` values so the user can verify the change. This return payload is the main reason narrow tools are easier to work with than a full write: you get a precise before/after per call instead of a revision number.
-4. After a sequence of several writes, call `process_diff` to show the accumulated change between the published and staging revision. It defaults to comparing the latest two revisions and takes explicit revisions as optional arguments.
+4. After all writes for the task are done, call `process_diff(process_id)` again with default arguments (`left=prod`, `right=staging`). Summarize the resulting diff to the user so they can see exactly what will enter production if published — this is the final review artefact and the natural bookend to the pre-edit diff check.
 5. Never invoke `process_publish` unless the user explicitly asked for it.
 ## Change structure with add, remove, and move
 
