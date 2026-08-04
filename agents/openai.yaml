@@ -1,0 +1,4 @@
+interface:
+  display_name: "LoyJoy headless"
+  short_description: "Safely manage LoyJoy agents through MCP"
+  default_prompt: "Use $loyjoy-headless to inspect and safely update a LoyJoy agent through MCP."
