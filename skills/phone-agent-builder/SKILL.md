@@ -1,6 +1,6 @@
 ---
 name: "loyjoy-phone-agent-builder"
-description: "Build, iterate, and debug custom prompts for LoyJoy phone agents (voice / speech-to-speech). Covers the standard-plus-custom architecture, working directly in the tenant via the LoyJoy MCP tools, maintainable prompt structure, change discipline (remove instructions instead of stacking negative rules), capturing digit sequences and spoken numbers, knowledge-search discipline including stale context reuse, tool-inventory reconciliation, recommended section structure, patterns for common use cases (knowledge lookup, transfer, callback, data capture, escalation, demo booking, appointment requests, authentication, complaint handling), anti-patterns, debugging workflow, and the side workflows that typically come with the work (customer feedback analysis, change-proposal Word documents, stakeholder mails). Trigger phrases include \"Phonebot Prompt\", \"Voice-Agent anpassen\", \"Custom-Prompt für Telefon\", \"Phone Agent Feedback umsetzen\", \"Telefonbot debuggen\", \"Voice-Prompt optimieren\"."
+description: "Create and configure new LoyJoy phone agents in staging, and build, iterate, or debug their custom voice prompts. Covers the standard-plus-custom architecture, LoyJoy MCP workflows, completeness checks, maintainable prompt structure, tool reconciliation, common phone use cases, voice-specific testing, and the boundary between a configured process and a telephony-ready agent. Use for requests such as \"Erstelle einen vollständigen Phone Agent\", \"Phonebot Prompt\", \"Voice-Agent anpassen\", \"Custom-Prompt für Telefon\", \"Phone Agent Feedback umsetzen\", \"Telefonbot debuggen\", or \"Voice-Prompt optimieren\"."
 ---
 
 # LoyJoy Phone Agent Builder
@@ -14,6 +14,7 @@ The skill is meant for internal LoyJoy use and for sharing with customers. It do
 ## When to start
 
 Invoke this skill when one of the following applies:
+- The user wants to create or configure a complete phone agent in LoyJoy.
 - The user wants to build a new phone-agent prompt from scratch.
 - The user wants to optimize an existing phone-agent prompt based on test calls or customer feedback.
 - The user wants to debug a specific misbehavior of a phone agent.
@@ -34,7 +35,7 @@ Go straight to work when:
 - The Ist-Stand is readable via MCP and the requested change is unambiguous against it.
 - The user has already answered the same questions earlier in the conversation.
 How to ask:
-- One round, bundled. Use AskUserQuestion with short, decision-shaped options, not open prose questions.
+- One round, bundled. Use short, decision-shaped questions, not a sequence of open prose questions.
 - Maximum four questions. Prioritize the ones that change the structure of the prompt, not the wording.
 - State your own recommendation per question. The user wants a sparring partner, not a form.
 - Never ask for information you can read yourself via MCP.
@@ -50,33 +51,74 @@ Note that a tenant may contain a prototype or demo copy of a customer agent whil
 
 ### Toolchain in Connected mode
 
-1. `processes_list` — resolve the agent by name to its `process_id`. Never guess IDs.
-2. `process_get_xml` — read the full BPMN XML of the process. This yields the current custom instruction text, the standard instruction blocks, the `instruction_id`, and the configured tools. This replaces asking the user to paste the current prompt.
-3. `process_put_instruction` — write the updated instruction text. Writes go to the **staging** version only, so writing is low-risk and does not need special ceremony.
-4. `process_diff` — compare prod against staging and get a structured JSON diff. Use it to verify your own write and to feed change documentation.
+Before the first connected write, read `../loyjoy-headless/SKILL.md` and follow its rules for tenant selection, targeted reads, staging writes, round-trip validation, model checking, diff review, and publishing. This skill adds the phone-specific decisions; it does not replace the headless safety workflow.
+
+Use this tool sequence as appropriate:
+
+1. `tenant_meta` and `processes_list` — confirm the tenant and resolve an existing agent by name. Never guess IDs.
+2. `process_get_xml_grep` — read the smallest relevant XML fragments, including the current custom instruction and configured tools. Use `process_get_xml` only when the whole structure is genuinely needed.
+3. `process_create`, `process_set_attribute`, and `process_add_extension_element` — create or edit the staging process. Update an existing instruction with `process_set_attribute(..., name="text", value="...")`. Create a missing custom instruction with `process_add_extension_element(element_type="instruction", initial_attrs={"type":"custom","text":"..."})`.
+4. `process_staging_xml_roundtrip_diff` — run after every write. Continue only when the result is identical.
+5. `process_i18n_completeness_check` and `process_model_check` — check language coverage and BPMN model correctness before delivery or publishing.
+6. `process_diff` — review the complete production-to-staging change.
+7. `process_publish` — publish only after the user explicitly requests or approves publication.
 ### Rules for write access
 
 - Never write without having read the current state in the same session.
 - Never write a block the user has not seen and approved.
-- Always run `process_diff` after writing, as verification that what landed is what you intended.
+- Run `process_staging_xml_roundtrip_diff` after every write and `process_diff` after the complete change.
 - One logical change per write. If the user asked for five things, that can still be one write, but do not bundle unrelated cleanup into it silently. Name what you changed.
-- Production is never touched by this skill. Staging only.
+- Work in staging. Touch production only through `process_publish`, and only with explicit approval.
 ### Hard limits of Connected mode
 
-- **There is no publish tool.** The loop ends at staging. Always close a Connected-mode job by stating explicitly that the customer must review and publish, and that a real test call is required afterwards.
+- MCP can create, configure, validate, diff, and publish a process. It currently cannot create or upload assets, assign a phone number, configure the external telephony routing, or perform a real voice call. Existing assets may only be referenced after their exact IDs and suitability have been verified.
 - **Do not use `chat_completions_eval` for phone agents.** It is a text chat path and does not represent the voice channel. Verification of a voice agent happens through real test calls, not through simulated text turns.
+
+### What “complete phone agent” means
+
+Never treat “complete” as one undifferentiated state. Report these levels separately:
+
+1. **Staging configuration complete**: the process is a phone agent, contains exactly one `AI_AGENT_SUBPROCESS`, has a custom instruction, its configured tools match the requested use cases, all process locales have complete i18n texts, XML round-trip validation is identical, model checking has no blocking findings, and the diff has been reviewed.
+2. **Published**: the validated staging state was published after explicit user approval.
+3. **Telephony ready**: a phone number and external routing are connected, the active standard voice prompt and realtime model are confirmed, and representative real voice calls passed.
+
+The current MCP workflow can achieve levels 1 and 2. It cannot by itself prove level 3. Therefore a request such as “Erstelle einen vollständigen Phone Agent” is actionable, but the result must be described as a fully configured staging process unless telephony setup and real test calls were completed outside MCP.
 ## Order of operations
 
 Follow these steps in order on every job. They are designed to avoid the most common waste pattern, which is starting to draft a prompt before knowing the technical and business constraints.
 
 1. Determine the working mode (Connected or Advisory).
-2. In Connected mode: read the Ist-Stand first. `processes_list`, then `process_get_xml`. Extract the current custom block, the `instruction_id`, and the configured tool list. In Advisory mode: request the current custom block as text.
+2. In Connected mode: confirm the tenant, resolve the process, and read the smallest relevant XML fragments. For an existing instruction, record its BPMN element ID and current `text`; for a new instruction, plan an `instruction` extension element with `type=custom`. In Advisory mode: request the current custom block as text.
 3. Confirm which model the phone agent runs on. Ask the user once if it is not evident. If the user does not know, assume the faster non-reasoning realtime voice model as fail-safe, because defensive rules calibrated for it also work on the stronger reasoning model.
 4. Confirm the LoyJoy standard voice prompt currently in use. The standard evolves. Ask for the current version if you have any doubt. The custom block must complement the standard, not duplicate it.
 5. Identify the project type: new build, optimization, debugging, or proposal document.
 6. Apply the Rückfragen-vor-Plan gate. Collect remaining constraints in one bundled round (see Clarification checklist). Do not silently assume, and do not ask what the XML already told you.
 7. Reconcile the tool inventory (see Tool-Inventar abgleichen).
 8. Draft, deliver, iterate. When iterating, always return the full updated custom block, not just the diff. Customers prefer copy-paste-ready output.
+9. In Connected mode, run the round-trip check after every write. Before delivery, run i18n completeness, model checking, and the production-to-staging diff.
+10. Report the three completeness levels separately. Publish only on explicit approval, and always leave the real voice test visible as an open requirement until it has actually happened.
+
+### Creating a new phone agent in Connected mode
+
+Do not create an empty process while essential requirements are still unknown. First establish the target audience, use cases, process locales, form of address, tools, knowledge sources, handoff behavior, emergency routing, data restrictions, greeting placement, and intended realtime model.
+
+Then follow “Create a phone agent” in `../loyjoy-headless/references/examples.md`. Its exact tool arguments and validation sequence are authoritative; the summary below highlights the phone-specific gates:
+
+1. Create the process with `process_create` and immediately run `process_staging_xml_roundtrip_diff`.
+2. Set `name="loyjoy:type"` to `value="phone_agent"` on `element_id=process_id`, then run the round-trip check again.
+3. Add exactly one subprocess with `process_add_subprocess(process_id, parent_id=process_id, subprocess_type="AI_AGENT_SUBPROCESS")`, retain its ID, and run the round-trip check again.
+4. Under that subprocess, add one custom `instruction` extension element with `type=custom` and the complete approved prompt text. Run the round-trip check.
+5. Configure only tools required by the approved use cases. Use exact available element types and attributes discovered through the schema and existing process structure; never invent a tool name or element type.
+6. Add all customer-visible texts for every configured process locale. Run `process_i18n_completeness_check` and resolve every missing or blank entry.
+7. Run `process_model_check`, resolve blocking findings, and review `process_diff`.
+8. Report what is complete and what remains for telephony readiness. Publish only after explicit approval.
+
+### Editing an existing custom instruction in Connected mode
+
+1. Locate the custom instruction with `process_get_xml_grep` and read its full current text.
+2. Apply the prompt methodology in this skill and obtain approval for the complete replacement text.
+3. Write it with `process_set_attribute(process_id, element_id, name="text", value="...")`.
+4. Run `process_staging_xml_roundtrip_diff`, `process_i18n_completeness_check`, `process_model_check`, and `process_diff`.
 ## Clarification checklist
 
 Before drafting a new custom block, the following items must be either known from the brief, readable via MCP, or asked.
@@ -171,7 +213,7 @@ These are the mistakes made while fixing other mistakes. They cost more test cal
 - **Verify by search, not by memory.** After an edit round, grep the prompt for the terms you removed and for every cross-reference, and confirm each resolves.
 ## Tool-Inventar abgleichen
 
-Prompt and tool configuration must match. In Connected mode `process_get_xml` shows the configured tools, so this reconciliation is cheap and should happen on every job.
+Prompt and tool configuration must match. In Connected mode, inspect the configured tool elements with `process_get_xml_grep`; use `process_get_xml` only if targeted reads cannot establish the complete inventory. Reconcile the inventory on every job.
 
 1. Derive the required tool set from the use cases (knowledge search, email, transfer, hangup, booking, custom integrations).
 2. Compare against what is actually configured.
@@ -456,7 +498,7 @@ Avoid these. They reliably hurt phone-agent quality.
 
 When test calls show problems, diagnose in this order before changing the prompt.
 
-1. **Reproduce**: get a recording and the transcript. Note where the failure happens (greeting, first user turn, mid-call, end). In Connected mode, read the actual prompt via `process_get_xml` first. A surprising number of reported bugs are a prompt state nobody expected to be live.
+1. **Reproduce**: get a recording and the transcript. Note where the failure happens (greeting, first user turn, mid-call, end). In Connected mode, read the actual prompt via `process_get_xml_grep` first. A surprising number of reported bugs are a prompt state nobody expected to be live.
 2. **Classify**: which layer owns this?
    - Audio layer: echo, distortion, cut-off, hold-music interpreted as speech, hands-free calls in cars. Not prompt-fixable.
    - VAD layer: agent interrupts user, agent does not let user finish, agent talks on when interrupted, long pauses after user end-of-speech. Tune `turn_detection.silence_duration_ms`, `threshold`, barge-in handling, consider semantic VAD.
@@ -605,7 +647,7 @@ Run through this before handing a prompt to the user.
 22. For every change in this round: was a cause removed where one existed, rather than a negative rule added, and was every superseded formulation deleted rather than left in parallel?
 23. If test mode is active: does the test-mode section list every place that must be changed to switch it off?
 24. Is the block still within the length budget, and are examples limited to genuine disambiguation?
-25. In Connected mode: was staging written, was `process_diff` run as verification, and has the user been told that publishing and a real test call are still open?
+25. In Connected mode: was the XML round-trip identical after every write, did i18n completeness and model checking pass without blocking findings, was `process_diff` reviewed, and were publication status, telephony setup, and the real voice test reported separately?
 ## Appendix: template skeleton for a fresh custom block
 
 ```
