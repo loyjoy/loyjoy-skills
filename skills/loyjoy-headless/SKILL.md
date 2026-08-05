@@ -46,7 +46,7 @@ Pick the first tool in this list that can express the change:
 2. `process_put_i18n` for a single-locale text on a `loyjoy:i18n` element.
 3. `process_put_list_attribute` for a JSON-array-valued attribute (add and remove individual items). Use for `loyjoy:knowledgeExcludedSources`, `loyjoy:aiBlockWords`, `loyjoy:locales`, `loyjoy:liveUserIds` and similar list attributes. Never reserialize the full array through `process_set_attribute` when a delta suffices.
 4. `process_set_attribute` for a single scalar attribute value on any element identified by its `id`. Resolve the exact attribute name first — see "Resolve attribute names before writing them".
-5. `process_add_subprocess`, `process_add_extension_element`, `process_remove_element`, and `process_move_element` for structural edits. Resolve the exact `subprocess_type` or `element_type` from the XSD (see "Change structure with add, remove, and move"), never guess it. The server generates fresh `id` and `loyjoy:id-src`, enforces parent-child compatibility, and cascades reference cleanup on removal (nulls dangling jump targets, drops orphan DMN entries, deletes unreferenced assets).
+5. `process_add_subprocess`, `process_add_extension_element`, `process_remove_element`, and `process_move_element` for structural edits. Resolve the exact `subprocess_type` or `element_type` from the XSD (see "Change structure with add, remove, and move"), never guess it. The server generates fresh `id` and enforces parent-child compatibility, and cascades reference cleanup on removal (nulls dangling jump targets, drops orphan DMN entries, deletes unreferenced assets).
 6. `process_put_xml` only when none of the above can express the change atomically (large multi-field refactors, migrations).
 
 
@@ -152,7 +152,7 @@ Before following these steps, answer one question: which specific narrow tool fa
 2. Make the smallest change that satisfies the request.
 3. Preserve unrelated elements, IDs, namespaces, process metadata, and unknown configuration.
 4. Keep the process ID unchanged and the process version set to `staging`.
-5. Never regenerate `id` or `loyjoy:id-src` values on existing elements. `id-src` is opaque lineage.
+5. Never regenerate `id` or `loyjoy:,,id-src` values on existing elements. `id-src` is opaque lineage.
 6. When an element's `id` must change, update every dependent reference: `loyjoy:i18n` keys of the form `<slot>/<parent-uuid>`, and every attribute whose name ends in `BpmnProcessId`, `BpmnSubProcessId`, or is otherwise a UUID reference (for example `loyjoy:openingHoursOpenJumpBpmnSubProcessId`, `loyjoy:liveExitJumpAutoBpmnSubProcessId`, `loyjoy:jumpDecision1..7BpmnSubProcessId`). Only some are model-checked; dangling references may not surface until runtime.
 7. Never alter an attribute whose name ends in `Aes`. Use a dedicated non-XML tool for secret changes when one exists; otherwise explain that the secret cannot be changed through raw XML editing.
 8. Summarize the intended changes before saving when they are broad, ambiguous, or potentially disruptive.
