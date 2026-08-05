@@ -126,9 +126,10 @@ Read two more things out of the same match while you are there: the declared typ
 1. Locate the target element and its `id` with `process_get_xml_grep` or a focused read.
 2. Call the narrow tool that matches the change (`process_set_attribute` with `name="text"` for an existing instruction, `process_put_i18n`, `process_put_list_attribute`, or `process_set_attribute` for another scalar attribute). Use `process_add_extension_element` when the requested instruction or i18n element does not exist yet.
 3. Report the returned `previous_*` and `new_*` values for attribute, list, and i18n writes. For a newly added element, report its returned element id and the verified initial attributes.
-4. Call `process_staging_validate(process_id)` after every write, no matter which tool made the change (see "Validate the staging XML after every write"). Do this in the same task before moving to the next write, so a wrong attribute name is caught while you still remember what you sent.
-5. After all writes for the task are done, call `process_diff(process_id)` again with default arguments (`left=prod`, `right=staging`). Summarize the resulting diff to the user so they can see exactly what will enter production if published — this is the final review artefact and the natural bookend to the pre-edit diff check.
-6. Never invoke `process_publish` unless the user explicitly asked for it.
+4. Call `process_staging_xml_roundtrip_diff(process_id)` after every write, no matter which tool made the change (see "Check the staging XML round trip after every write"). Do this in the same task before moving to the next write, so a wrong attribute name is caught while you still remember what you sent.
+5. After all related writes are complete, call `process_model_check(process_id)`. Do not treat `is_valid=true` as a runtime or content-quality test; it only means that no CRITICAL or BLOCKER model-checking issues were found.
+6. Call `process_diff(process_id)` again with default arguments (`left=prod`, `right=staging`). Summarize the resulting diff to the user so they can see exactly what will enter production if published — this is the final review artefact and the natural bookend to the pre-edit diff check.
+7. Never invoke `process_publish` unless the user explicitly asked for it.
 
 ## Change structure with add, remove, and move
 
@@ -141,7 +142,7 @@ Before assembling any new module, sub-process, `dataCollectionQuestion`, `bpmnSu
 3. `process_remove_element(process_id, element_id)` — deletes an element. The server cascades reference cleanup: nulls jump targets on Process, SubProcess, ListElement, ScannerCategory and SnapshotCategory that pointed at a removed SubProcess; drops orphan `DmnEntry` rows; deletes unreferenced `Asset` files. It refuses to remove the `Process`, `Definitions`, or `ExtensionElements` containers.
 4. `process_move_element(process_id, element_id, new_parent_id?, new_position?)` — reorder within the current parent (omit `new_parent_id`) or re-parent (provide `new_parent_id`). The element keeps its `id`, so cross-references stay valid. Refuses to move a container element and refuses to move an element into its own subtree.
 
-Structural writes are the class of change most likely to smuggle in an invented attribute — an unknown `initial_attrs` key, a hand-picked enum spelling, a misspelled attribute set through the follow-up `process_set_attribute`. Call `process_staging_validate(process_id)` immediately after every structural write and after every follow-up attribute/i18n write, and do not treat the sequence as complete until the validator returns `is_identical=true`. Details in "Validate the staging XML after every write".
+Structural writes are the class of change most likely to smuggle in an invented attribute — an unknown `initial_attrs` key, a hand-picked enum spelling, a misspelled attribute set through the follow-up `process_set_attribute`. Call `process_staging_xml_roundtrip_diff(process_id)` immediately after every structural write and after every follow-up attribute/i18n write, and do not treat the sequence as complete until it returns `is_identical=true`. After the complete structural change is assembled, call `process_model_check(process_id)` once. Details in "Check the staging XML round trip after every write".
 
 
 ## Edit an agent with raw XML
@@ -157,14 +158,15 @@ Before following these steps, answer one question: which specific narrow tool fa
 7. Never alter an attribute whose name ends in `Aes`. Use a dedicated non-XML tool for secret changes when one exists; otherwise explain that the secret cannot be changed through raw XML editing.
 8. Summarize the intended changes before saving when they are broad, ambiguous, or potentially disruptive.
 9. Call `process_put_xml(process_id, xml)` with the complete updated staging XML.
-10. Immediately after `process_put_xml`, call `process_staging_validate(process_id)` (see next section). If it reports `is_identical=false`, treat any lines removed from the `staging_raw` side as attributes or elements you invented — the deserializer discarded them because they are not in the schema. Fix the wrong names and write again before moving on.
+10. Immediately after `process_put_xml`, call `process_staging_xml_roundtrip_diff(process_id)` (see next section). If it reports `is_identical=false`, treat any lines removed from the `staging_raw` side as attributes or elements you invented — the deserializer discarded them because they are not in the schema. Fix the wrong names and write again before moving on.
+11. After the roundtrip diff is identical, call `process_model_check(process_id)` before reviewing or publishing the change.
 
 
-## Validate the staging XML after every write
+## Check the staging XML round trip after every write
 
-The BPMN deserializer silently drops attributes and elements that the LoyJoy extension schema does not declare. A misspelled attribute name like `loyjoy:dtStart` (correct: `loyjoy:dtstart`), an invented enum value, an extra attribute added to `initial_attrs`, or a non-existent element type will vanish on save and only surface at runtime when the agent misbehaves. Every write tool can leak such a mistake, not just `process_put_xml` — `process_set_attribute`, `process_put_list_attribute`, `process_add_extension_element` and its follow-up attribute writes, `process_add_subprocess`, and `process_put_i18n` all send strings that the server accepts as long as the outer XML is well-formed. `process_staging_validate` closes that gap.
+The BPMN deserializer silently drops attributes and elements that the LoyJoy extension schema does not declare. A misspelled attribute name like `loyjoy:dtStart` (correct: `loyjoy:dtstart`), an invented enum value, an extra attribute added to `initial_attrs`, or a non-existent element type will vanish on save and only surface at runtime when the agent misbehaves. Every write tool can leak such a mistake, not just `process_put_xml` — `process_set_attribute`, `process_put_list_attribute`, `process_add_extension_element` and its follow-up attribute writes, `process_add_subprocess`, and `process_put_i18n` all send strings that the server accepts as long as the outer XML is well-formed. `process_staging_xml_roundtrip_diff` closes that specific gap.
 
-**Rule: call `process_staging_validate(process_id)` after every write, regardless of which tool made it, and before your next action in the task.** That includes:
+**Rule: call `process_staging_xml_roundtrip_diff(process_id)` after every write, regardless of which tool made it, and before your next action in the task.** That includes:
 
 - After each `process_add_subprocess` and each `process_add_extension_element` (structural writes are the highest-risk source of invented attributes because `initial_attrs` is free-text).
 - After each follow-up `process_set_attribute`, `process_put_list_attribute`, or `process_put_i18n` used to fill in the newly added element.
@@ -184,7 +186,19 @@ How to read the result:
 - Lines with `type="remove"` (only in `staging_raw`) are the important signal: those are the constructs the deserializer discarded. Treat each removed line as an attribute or element name you invented or misspelled. Re-resolve the correct spelling through `process_get_xml_schema_grep` and re-apply the change with the correct name. Do not continue with further edits until the diff comes back identical — a second write on top of an unrepaired first one only muddies the picture.
 - Lines with `type="add"` (only in `staging_roundtrip`) are usually harmless serializer artefacts — different whitespace, attribute order, or namespace handling. Do not chase them in isolation; only investigate an `add` line if it sits next to a `remove` line at the same location.
 
-Do not call it after read-only operations or as a general "does the process look ok" probe — the diff will contain formatting noise even when nothing is wrong, and reading it is only useful when a write just happened.
+`is_identical=true` does not mean that the process is structurally or semantically valid. It only means that the stored XML survived the serialization round trip without differences. Do not call it after read-only operations or as a general "does the process look ok" probe — the diff will contain formatting noise even when nothing is wrong, and reading it is only useful when a write just happened.
+
+
+## Model-check the completed staging change
+
+Call `process_model_check(process_id)` after a related set of writes is complete, not after every intermediate write. Multi-step construction commonly has temporarily incomplete states, so model-checking each step produces noise rather than useful guidance.
+
+- `is_valid=true` means there are no CRITICAL or BLOCKER model-checking issues.
+- `blocking_count` counts CRITICAL and BLOCKER issues. Do not publish while this is greater than zero.
+- `warning_count` counts all non-blocking model-checking issues. Summarize relevant warnings for the user, but do not call them runtime failures.
+- `issues` contains the model-checking findings and their affected entity ids.
+
+Model checking does not prove that the agent answers correctly or that its content meets the user's intent. It complements the XML roundtrip diff; it does not replace it.
 
 
 ## Publish an agent
@@ -193,15 +207,17 @@ Publishing changes production behavior. Call `process_publish` only when the use
 
 Before publishing:
 
-1. Call `process_diff(process_id)` and verify that staging contains only the changes the user intends to publish.
-2. Give a concise summary of what will enter production.
-3. Use a meaningful publication comment describing the change.
+1. Call `process_staging_xml_roundtrip_diff(process_id)` and require `is_identical=true` for the latest write.
+2. Call `process_model_check(process_id)` and require `blocking_count=0`.
+3. Call `process_diff(process_id)` and verify that staging contains only the changes the user intends to publish.
+4. Give a concise summary of what will enter production.
+5. Use a meaningful publication comment describing the change.
 Do not interpret a request to edit, update, configure, or fix an agent as permission to publish it.
 
 
 ## Read-only requests
 
-For inspection, explanation, review, or comparison requests, do not call `process_create`, `process_put_xml`, `process_put_i18n`, `process_put_list_attribute`, `process_set_attribute`, `process_add_subprocess`, `process_add_extension_element`, `process_remove_element`, `process_move_element`, or `process_publish`. Use `processes_list`, `process_get_xml_grep`, `process_get_xml`, `process_diff`, `process_get_xml_schema_grep`, `process_get_xml_schema`, `process_staging_validate`, `templates_search`, `templates_list`, `template_get_xml`, `template_get_xml_grep`, `template_get_xml_grep_all`, `views_list`, `view_get`, `view_get_xml`, and `analytics_process_get` as needed. `process_diff` is the right tool for "what changed", "what is not live yet", and "compare staging to production" questions.
+For inspection, explanation, review, or comparison requests, do not call `process_create`, `process_put_xml`, `process_put_i18n`, `process_put_list_attribute`, `process_set_attribute`, `process_add_subprocess`, `process_add_extension_element`, `process_remove_element`, `process_move_element`, or `process_publish`. Use `processes_list`, `process_get_xml_grep`, `process_get_xml`, `process_diff`, `process_get_xml_schema_grep`, `process_get_xml_schema`, `process_staging_xml_roundtrip_diff`, `process_model_check`, `templates_search`, `templates_list`, `template_get_xml`, `template_get_xml_grep`, `template_get_xml_grep_all`, `views_list`, `view_get`, `view_get_xml`, and `analytics_process_get` as needed. `process_diff` is the right tool for "what changed", "what is not live yet", and "compare staging to production" questions.
 
 
 ## Report the outcome
