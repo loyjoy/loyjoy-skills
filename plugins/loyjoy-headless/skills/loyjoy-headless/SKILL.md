@@ -226,6 +226,7 @@ For non-i18n scalar text attributes, including an instruction's `text`, `process
 ## Publish an agent
 
 Publishing changes production behavior. Call `process_publish` only when the user explicitly asks to publish or explicitly approves the reviewed staged changes.
+
 Before publishing:
 
 1. Call `process_staging_xml_roundtrip_diff(process_id)` and require `is_identical=true` for the latest write.
