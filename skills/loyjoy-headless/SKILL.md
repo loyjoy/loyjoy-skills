@@ -127,10 +127,9 @@ Read two more things out of the same match while you are there: the declared typ
 2. Call the narrow tool that matches the change (`process_set_attribute` with `name="text"` for an existing instruction, `process_put_i18n`, `process_put_list_attribute`, or `process_set_attribute` for another scalar attribute). Use `process_add_extension_element` when the requested instruction or i18n element does not exist yet.
 3. Report the returned `previous_*` and `new_*` values for attribute, list, and i18n writes. For a newly added element, report its returned element id and the verified initial attributes.
 4. Call `process_staging_xml_roundtrip_diff(process_id)` after every write, no matter which tool made the change (see "Check the staging XML round trip after every write"). Do this in the same task before moving to the next write, so a wrong attribute name is caught while you still remember what you sent.
-5. After all related text writes are complete, call `process_i18n_completeness_check(process_id)`. Resolve every entry in `incomplete_entries` that the task introduced. Do not silently invent translations for pre-existing missing values; report those separately to the user.
-6. Call `process_model_check(process_id)`. Do not treat `is_valid=true` as a runtime or content-quality test; it only means that no CRITICAL or BLOCKER model-checking issues were found.
-7. Call `process_diff(process_id)` again with default arguments (`left=prod`, `right=staging`). Summarize the resulting diff to the user so they can see exactly what will enter production if published — this is the final review artefact and the natural bookend to the pre-edit diff check.
-8. Never invoke `process_publish` unless the user explicitly asked for it.
+5. After all related text writes are complete, call `process_model_check(process_id)`. Inspect `LOCALE_NOT_MAINTAINED` issues for affected i18n elements and resolve language gaps introduced by the task. Do not silently invent translations for pre-existing findings; report those separately to the user. Do not treat `is_valid=true` as a runtime or content-quality test; non-blocking locale issues may still be present in `issues`.
+6. Call `process_diff(process_id)` again with default arguments (`left=prod`, `right=staging`). Summarize the resulting diff to the user so they can see exactly what will enter production if published — this is the final review artefact and the natural bookend to the pre-edit diff check.
+7. Never invoke `process_publish` unless the user explicitly asked for it.
 
 ## Change structure with add, remove, and move
 
@@ -160,7 +159,7 @@ Before following these steps, answer one question: which specific narrow tool fa
 8. Summarize the intended changes before saving when they are broad, ambiguous, or potentially disruptive.
 9. Call `process_put_xml(process_id, xml)` with the complete updated staging XML.
 10. Immediately after `process_put_xml`, call `process_staging_xml_roundtrip_diff(process_id)` (see next section). If it reports `is_identical=false`, treat any lines removed from the `staging_raw` side as attributes or elements you invented — the deserializer discarded them because they are not in the schema. Fix the wrong names and write again before moving on.
-11. After the roundtrip diff is identical, call `process_i18n_completeness_check(process_id)` and then `process_model_check(process_id)` before reviewing or publishing the change.
+11. After the roundtrip diff is identical, call `process_model_check(process_id)` and inspect its locale-related issues before reviewing or publishing the change.
 
 
 ## Check the staging XML round trip after every write
@@ -210,10 +209,10 @@ For every i18n text affected by the request:
 
 1. Locate the existing i18n element or create it with the correct template-derived key.
 2. Provide a non-blank value for every configured process locale. If the user supplied wording for only one locale and translating it requires judgment, ask for the missing translations instead of publishing a partially translated element.
-3. Run `process_i18n_completeness_check(process_id)` after the related text writes. `is_complete=true` means every i18n element currently has a non-blank value for every configured locale.
-4. If `incomplete_entries` contains elements unrelated to the current task, report their ids, keys, and missing locales. Do not broaden a narrow user request by inventing or overwriting unrelated translations.
+3. Run `process_model_check(process_id)` after the related text writes and inspect every `LOCALE_NOT_MAINTAINED` issue. Use the affected entity IDs and a targeted `process_get_xml_grep` read to identify the missing localized values.
+4. If locale-related issues are unrelated to the current task, report their entity IDs. Do not broaden a narrow user request by inventing or overwriting unrelated translations.
 
-To set an intentionally empty localized text, call `process_put_i18n(..., text="")`. The response returns `new_text=""`. The completeness check deliberately treats empty and whitespace-only values as incomplete, so explain the resulting issue to the user and do not publish unless the empty text is intentional and explicitly approved.
+To set an intentionally empty localized text, call `process_put_i18n(..., text="")`. The response returns `new_text=""`. For a multilingual entry that still contains text in another locale, model checking reports `LOCALE_NOT_MAINTAINED`; explain the finding and do not publish unless the empty text is intentional and explicitly approved.
 
 For non-i18n scalar text attributes, including an instruction's `text`, `process_set_attribute(..., value="")` removes the attribute. If the user wants to delete the whole instruction or i18n entry rather than only clear its text, use `process_remove_element` after confirmation.
 
@@ -225,17 +224,16 @@ Publishing changes production behavior. Call `process_publish` only when the use
 Before publishing:
 
 1. Call `process_staging_xml_roundtrip_diff(process_id)` and require `is_identical=true` for the latest write.
-2. Call `process_i18n_completeness_check(process_id)` and require `is_complete=true`, unless the user has explicitly approved identified missing localized values.
-3. Call `process_model_check(process_id)` and require `blocking_count=0`.
-4. Call `process_diff(process_id)` and verify that staging contains only the changes the user intends to publish.
-5. Give a concise summary of what will enter production.
-6. Use a meaningful publication comment describing the change.
+2. Call `process_model_check(process_id)`, require `blocking_count=0`, and review every `LOCALE_NOT_MAINTAINED` issue unless the user has explicitly approved the affected localized values.
+3. Call `process_diff(process_id)` and verify that staging contains only the changes the user intends to publish.
+4. Give a concise summary of what will enter production.
+5. Use a meaningful publication comment describing the change.
 Do not interpret a request to edit, update, configure, or fix an agent as permission to publish it.
 
 
 ## Read-only requests
 
-For inspection, explanation, review, or comparison requests, do not call `process_create`, `process_put_xml`, `process_put_i18n`, `process_put_list_attribute`, `process_set_attribute`, `process_add_subprocess`, `process_add_extension_element`, `process_remove_element`, `process_move_element`, or `process_publish`. Use `processes_list`, `process_get_xml_grep`, `process_get_xml`, `process_diff`, `process_get_xml_schema_grep`, `process_get_xml_schema`, `process_staging_xml_roundtrip_diff`, `process_i18n_completeness_check`, `process_model_check`, `templates_search`, `templates_list`, `template_get_xml`, `template_get_xml_grep`, `template_get_xml_grep_all`, `views_list`, `view_get`, `view_get_xml`, and `analytics_process_get` as needed. `process_diff` is the right tool for "what changed", "what is not live yet", and "compare staging to production" questions.
+For inspection, explanation, review, or comparison requests, do not call `process_create`, `process_put_xml`, `process_put_i18n`, `process_put_list_attribute`, `process_set_attribute`, `process_add_subprocess`, `process_add_extension_element`, `process_remove_element`, `process_move_element`, or `process_publish`. Use `processes_list`, `process_get_xml_grep`, `process_get_xml`, `process_diff`, `process_get_xml_schema_grep`, `process_get_xml_schema`, `process_staging_xml_roundtrip_diff`, `process_model_check`, `templates_search`, `templates_list`, `template_get_xml`, `template_get_xml_grep`, `template_get_xml_grep_all`, `views_list`, `view_get`, `view_get_xml`, and `analytics_process_get` as needed. `process_diff` is the right tool for "what changed", "what is not live yet", and "compare staging to production" questions.
 
 
 ## Report the outcome

@@ -1,6 +1,6 @@
 ---
 name: "loyjoy-phone-agent-builder"
-description: "Create and configure new LoyJoy phone agents in staging, and build, iterate, or debug their custom voice prompts. Covers the standard-plus-custom architecture, LoyJoy MCP workflows, completeness checks, maintainable prompt structure, tool reconciliation, common phone use cases, voice-specific testing, and the boundary between a configured process and a telephony-ready agent. Use for requests such as \"Erstelle einen vollständigen Phone Agent\", \"Phonebot Prompt\", \"Voice-Agent anpassen\", \"Custom-Prompt für Telefon\", \"Phone Agent Feedback umsetzen\", \"Telefonbot debuggen\", or \"Voice-Prompt optimieren\"."
+description: "Create and configure new LoyJoy phone agents in staging, and build, iterate, or debug their custom voice prompts. Covers the standard-plus-custom architecture, LoyJoy MCP workflows, model checks, maintainable prompt structure, tool reconciliation, common phone use cases, voice-specific testing, and the boundary between a configured process and a telephony-ready agent. Use for requests such as \"Erstelle einen vollständigen Phone Agent\", \"Phonebot Prompt\", \"Voice-Agent anpassen\", \"Custom-Prompt für Telefon\", \"Phone Agent Feedback umsetzen\", \"Telefonbot debuggen\", or \"Voice-Prompt optimieren\"."
 ---
 
 # LoyJoy Phone Agent Builder
@@ -59,7 +59,7 @@ Use this tool sequence as appropriate:
 2. `process_get_xml_grep` — read the smallest relevant XML fragments, including the current custom instruction and configured tools. Use `process_get_xml` only when the whole structure is genuinely needed.
 3. `process_create`, `process_set_attribute`, and `process_add_extension_element` — create or edit the staging process. Update an existing instruction with `process_set_attribute(..., name="text", value="...")`. Create a missing custom instruction with `process_add_extension_element(element_type="instruction", initial_attrs={"type":"custom","text":"..."})`.
 4. `process_staging_xml_roundtrip_diff` — run after every write. Continue only when the result is identical.
-5. `process_i18n_completeness_check` and `process_model_check` — check language coverage and BPMN model correctness before delivery or publishing.
+5. `process_model_check` — check BPMN correctness and inspect `LOCALE_NOT_MAINTAINED` issues for language gaps before delivery or publishing.
 6. `process_diff` — review the complete production-to-staging change.
 7. `process_publish` — publish only after the user explicitly requests or approves publication.
 ### Rules for write access
@@ -95,7 +95,7 @@ Follow these steps in order on every job. They are designed to avoid the most co
 6. Apply the Rückfragen-vor-Plan gate. Collect remaining constraints in one bundled round (see Clarification checklist). Do not silently assume, and do not ask what the XML already told you.
 7. Reconcile the tool inventory (see Tool-Inventar abgleichen).
 8. Draft, deliver, iterate. When iterating, always return the full updated custom block, not just the diff. Customers prefer copy-paste-ready output.
-9. In Connected mode, run the round-trip check after every write. Before delivery, run i18n completeness, model checking, and the production-to-staging diff.
+9. In Connected mode, run the round-trip check after every write. Before delivery, run model checking, review its locale-related issues, and inspect the production-to-staging diff.
 10. Report the three completeness levels separately. Publish only on explicit approval, and always leave the real voice test visible as an open requirement until it has actually happened.
 
 ### Creating a new phone agent in Connected mode
@@ -109,7 +109,7 @@ Then follow “Create a phone agent” in `../loyjoy-headless/references/example
 3. Add exactly one subprocess with `process_add_subprocess(process_id, parent_id=process_id, subprocess_type="AI_AGENT_SUBPROCESS")`, retain its ID, and run the round-trip check again.
 4. Under that subprocess, add one custom `instruction` extension element with `type=custom` and the complete approved prompt text. Run the round-trip check.
 5. Configure only tools required by the approved use cases. Use exact available element types and attributes discovered through the schema and existing process structure; never invent a tool name or element type.
-6. Add all customer-visible texts for every configured process locale. Run `process_i18n_completeness_check` and resolve every missing or blank entry.
+6. Add all customer-visible texts for every configured process locale. Run `process_model_check` and resolve every `LOCALE_NOT_MAINTAINED` issue introduced by the task.
 7. Run `process_model_check`, resolve blocking findings, and review `process_diff`.
 8. Report what is complete and what remains for telephony readiness. Publish only after explicit approval.
 
@@ -118,7 +118,7 @@ Then follow “Create a phone agent” in `../loyjoy-headless/references/example
 1. Locate the custom instruction with `process_get_xml_grep` and read its full current text.
 2. Apply the prompt methodology in this skill and obtain approval for the complete replacement text.
 3. Write it with `process_set_attribute(process_id, element_id, name="text", value="...")`.
-4. Run `process_staging_xml_roundtrip_diff`, `process_i18n_completeness_check`, `process_model_check`, and `process_diff`.
+4. Run `process_staging_xml_roundtrip_diff`, `process_model_check`, and `process_diff`; inspect locale-related warnings as well as blocking findings.
 ## Clarification checklist
 
 Before drafting a new custom block, the following items must be either known from the brief, readable via MCP, or asked.
@@ -647,7 +647,7 @@ Run through this before handing a prompt to the user.
 22. For every change in this round: was a cause removed where one existed, rather than a negative rule added, and was every superseded formulation deleted rather than left in parallel?
 23. If test mode is active: does the test-mode section list every place that must be changed to switch it off?
 24. Is the block still within the length budget, and are examples limited to genuine disambiguation?
-25. In Connected mode: was the XML round-trip identical after every write, did i18n completeness and model checking pass without blocking findings, was `process_diff` reviewed, and were publication status, telephony setup, and the real voice test reported separately?
+25. In Connected mode: was the XML round-trip identical after every write, were blocking and `LOCALE_NOT_MAINTAINED` model-checking findings reviewed, was `process_diff` reviewed, and were publication status, telephony setup, and the real voice test reported separately?
 ## Appendix: template skeleton for a fresh custom block
 
 ```
