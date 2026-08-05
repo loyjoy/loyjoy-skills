@@ -223,7 +223,7 @@ To set an intentionally empty localized text, call `process_put_i18n(..., text="
 For non-i18n scalar text attributes, including an instruction's `text`, `process_set_attribute(..., value="")` removes the attribute. If the user wants to delete the whole instruction or i18n entry rather than only clear its text, use `process_remove_element` after confirmation.
 
 
-## Publish an Agent
+## Publish an agent
 
 Publishing changes production behavior. Call `process_publish` only when the user explicitly asks to publish or explicitly approves the reviewed staged changes.
 
