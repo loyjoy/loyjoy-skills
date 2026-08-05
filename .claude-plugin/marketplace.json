@@ -1,6 +1,7 @@
 {
   "name": "loyjoy-headless",
   "description": "LoyJoy tools for managing agents and building phone-agent prompts.",
+  "version": "0.1.0",
   "owner": {
     "name": "LoyJoy GmbH",
     "url": "https://loyjoy.com"
