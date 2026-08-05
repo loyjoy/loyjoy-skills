@@ -62,7 +62,7 @@ User request: "Add a question for the email address to the data collection modul
 
 User request: "Erstelle einen Phone Agent für uns."
 
-A phone agent is a process with two hard invariants enforced by `BpmnProcessesSingletonAgentTypeServiceImpl.assure` on the server: `loyjoy:type="phone_agent"` on the `Process`, and exactly one `AI_AGENT_SUBPROCESS` module inside it. If the type is set but the module is missing, the server will auto-create and seed one (via `seedPhoneAgent`) on the next access. Do not rely on that timing: create the module explicitly so the process is complete after your last write and the seeded instructions and tools land in the same task.
+A phone agent is a process with two hard invariants: `loyjoy:type="phone_agent"` on the `Process`, and exactly one `AI_AGENT_SUBPROCESS` module inside it. Do not rely on that timing: create the module explicitly so the process is complete after your last write and the seeded instructions and tools land in the same task.
 
 1. `process_create(name, default_locale, folder?)` — returns the new `process_id`. The process is empty: no type, no modules.
 2. `process_set_attribute(process_id, element_id=process_id, name="loyjoy:type", value="phone_agent")` on the `Process` element. The valid enum values are `ai_agent`, `chat_agent`, `phone_agent`; anything else silently produces a broken agent. If unsure, verify with `process_get_xml_schema_grep(pattern="phone_agent", context_before=3)`.
