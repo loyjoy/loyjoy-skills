@@ -58,6 +58,22 @@ User request: "Add a question for the email address to the data collection modul
 5. `process_put_i18n` on the returned element for the question text in each locale.
 
 
+## Create a phone agent
+
+User request: "Erstelle einen Phone Agent für uns."
+
+A phone agent is a process with two hard invariants enforced by `BpmnProcessesSingletonAgentTypeServiceImpl.assure` on the server: `loyjoy:type="phone_agent"` on the `Process`, and exactly one `AI_AGENT_SUBPROCESS` module inside it. If the type is set but the module is missing, the server will auto-create and seed one (via `seedPhoneAgent`) on the next access. Do not rely on that timing: create the module explicitly so the process is complete after your last write and the seeded instructions and tools land in the same task.
+
+1. `process_create(name, default_locale, folder?)` — returns the new `process_id`. The process is empty: no type, no modules.
+2. `process_set_attribute(process_id, element_id=process_id, name="loyjoy:type", value="phone_agent")` on the `Process` element. The valid enum values are `ai_agent`, `chat_agent`, `phone_agent`; anything else silently produces a broken agent. If unsure, verify with `process_get_xml_schema_grep(pattern="phone_agent", context_before=3)`.
+3. `process_add_subprocess(process_id, parent_id=process_id, subprocess_type="AI_AGENT_SUBPROCESS")`. Exactly one. Retain the returned element id — the follow-up instruction, tool, and i18n writes all target it.
+4. `process_staging_validate(process_id)` — confirms the type attribute and the module survived deserialization. A `remove` on `loyjoy:type` means the value was rejected (wrong enum spelling); a missing subprocess means the add failed.
+5. Fill in branding, instruction text, and locales through the narrow tools (`process_put_instruction`, `process_put_i18n`, `process_set_attribute`) on the returned agent subprocess id and on the process. Consult the phone-agent-builder skill for the actual prompt content — this skill only wires the structure.
+6. Report the process id, the agent subprocess id, and that the change is staged only.
+
+Do not add a second `AI_AGENT_SUBPROCESS`. If one already exists (either because the server seeded one between your writes or because you accidentally called `process_add_subprocess` twice), the singleton invariant is violated and the assure service will not repair it — you have to remove the extra one with `process_remove_element`. Grep for `AI_AGENT_SUBPROCESS` after the add if you are not sure.
+
+
 ## Reorder or re-parent instead of rewriting
 
 User request: "Move the FAQ module above the product finder."
