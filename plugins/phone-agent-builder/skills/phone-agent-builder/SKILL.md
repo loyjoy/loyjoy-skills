@@ -51,7 +51,7 @@ Note that a tenant may contain a prototype or demo copy of a customer agent whil
 
 ### Toolchain in Connected mode
 
-Before the first connected write, read `../loyjoy-headless/SKILL.md` and follow its rules for tenant selection, targeted reads, staging writes, round-trip validation, model checking, diff review, and publishing. This skill adds the phone-specific decisions; it does not replace the headless safety workflow.
+Before the first connected write, load the `loyjoy-headless` skill installed as this plugin's dependency and follow its rules for tenant selection, targeted reads, staging writes, round-trip validation, model checking, diff review, and publishing. This skill adds the phone-specific decisions; it does not replace the headless safety workflow.
 
 Use this tool sequence as appropriate:
 
@@ -102,7 +102,7 @@ Follow these steps in order on every job. They are designed to avoid the most co
 
 Do not create an empty process while essential requirements are still unknown. First establish the target audience, use cases, process locales, form of address, tools, knowledge sources, handoff behavior, emergency routing, data restrictions, greeting placement, and intended realtime model.
 
-Then follow “Create a phone agent” in `../loyjoy-headless/references/examples.md`. Its exact tool arguments and validation sequence are authoritative; the summary below highlights the phone-specific gates:
+Then follow “Create a phone agent” in the `loyjoy-headless` skill's `references/examples.md`. Its exact tool arguments and validation sequence are authoritative; the summary below highlights the phone-specific gates:
 
 1. Create the process with `process_create` and immediately run `process_staging_xml_roundtrip_diff`.
 2. Set `name="loyjoy:type"` to `value="phone_agent"` on `element_id=process_id`, then run the round-trip check again.
