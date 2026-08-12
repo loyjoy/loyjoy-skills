@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "loyjoy-manager": {
+      "type": "http",
+      "url": "https://app-cloud.loyjoy.com/mcp"
+    }
+  }
+}
