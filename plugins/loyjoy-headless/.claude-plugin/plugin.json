@@ -10,5 +10,6 @@
   "homepage": "https://github.com/loyjoy/loyjoy-headless",
   "repository": "https://github.com/loyjoy/loyjoy-headless",
   "license": "Apache-2.0",
-  "keywords": ["loyjoy", "mcp", "bpmn", "agent-management"]
+  "keywords": ["loyjoy", "mcp", "bpmn", "agent-management"],
+  "mcpServers": "./.mcp.json"
 }
