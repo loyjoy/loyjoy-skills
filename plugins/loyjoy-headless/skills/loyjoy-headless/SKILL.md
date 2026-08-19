@@ -111,7 +111,7 @@ Resolution order:
 1. `process_get_xml_grep(process_id, pattern)` — if the element already carries the attribute in this process, the XML shows the exact name in use, prefix included. Cheapest and most reliable, and it confirms the element `id` at the same time.
 2. `process_get_xml_schema_grep(pattern)` — the authoritative answer for attributes the process does not carry yet. Grep for the bare name, case-insensitively, with context: `(?i)dtstart` plus `context_before: 3` returns the `xs:attribute` line together with the enclosing `xs:attributeGroup`, which also reveals which element the attribute belongs to.
 3. `process_get_xml_schema()` — the full ~3400-line schema, only when targeted greps come back empty and you genuinely need to browse. It burns a lot of context, so treat it as the last resort and mention to the user that you fell back to it.
-**Prefix rule.** The XSD never prints the `loyjoy:` prefix; it encodes it in `form`. `form="qualified"` means the attribute lives in the LoyJoy extension namespace and must be passed prefixed (`loyjoy:dtstart`). BPMN core attributes such as `name` are unqualified and are passed bare.
+**Prefix rule.** The XSD never prints the `loyjoy:` prefix; it encodes it in `form`. `form="qualified"` means the attribute lives in the LoyJoy extensiopace and must be passed prefixed (`loyjoy:dtstart`). BPMN core attributes such as `name` are unqualified and are passed bare.
 Example: `(?i)dtstart` returns
 
 ```xml
@@ -205,7 +205,7 @@ Model checking does not prove that the agent answers correctly or that its conte
 
 
 ## Keep every configured language complete
-Passe den agent Spaßkasse an in loyjoy. Füge eine fortfahren-frage nach dem willkommen ein
+Passe den agent 'Live-chat' an in loyjoy. Füge eine fortfahren-frage nach dem willkommen ein
 
 
 
