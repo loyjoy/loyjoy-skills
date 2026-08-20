@@ -15,7 +15,7 @@
 | Plugin | What it does |
 |---|---|
 | [`loyjoy-headless`](plugins/loyjoy-headless) | Inspect, edit, compare, and publish LoyJoy agent configurations through the LoyJoy Manager MCP server. Covers instructions and prompts, modules and subprocesses, knowledge configuration, tools, branding, locales, and publishing workflows. |
-| [`phone-agent-builder`](plugins/phone-agent-builder) | Create, configure, iterate, and debug LoyJoy phone agents and their custom voice prompts. Covers the standard-plus-custom prompt architecture, voice-specific patterns (spoken numbers, digit confirmation, transfer with consent), and debugging from real test calls. |
+| [`loyjoy-phone-agent-builder`](plugins/loyjoy-phone-agent-builder) | Create, configure, iterate, and debug LoyJoy phone agents and their custom voice prompts. Covers the standard-plus-custom prompt architecture, voice-specific patterns (spoken numbers, digit confirmation, transfer with consent), and debugging from real test calls. |
 
 More skills are on the way, including analytics reporting, presentation and infographic generation from LoyJoy data, and knowledge management.
 
@@ -26,7 +26,7 @@ More skills are on the way, including analytics reporting, presentation and info
 ```bash
 /plugin marketplace add loyjoy/loyjoy-skills
 /plugin install loyjoy-headless@loyjoy-skills
-/plugin install phone-agent-builder@loyjoy-skills
+/plugin install loyjoy-phone-agent-builder@loyjoy-skills
 ```
 
 ### Other agents
