@@ -1,5 +1,5 @@
 {
-  "name": "loyjoy-headless",
+  "name": "loyjoy-skills",
   "description": "LoyJoy tools for managing agents and building phone-agent prompts.",
   "version": "0.1.1",
   "owner": {
@@ -10,12 +10,32 @@
     {
       "name": "loyjoy-headless",
       "source": "./plugins/loyjoy-headless",
-      "category": "developer-tools"
+      "description": "Inspect, edit, compare, and publish LoyJoy agent configurations through the LoyJoy Manager MCP server.",
+      "version": "0.1.1",
+      "category": "developer-tools",
+      "author": {
+        "name": "LoyJoy GmbH",
+        "email": "sebastian.deisel@loyjoy.com",
+        "url": "https://loyjoy.com"
+      },
+      "homepage": "https://github.com/loyjoy/loyjoy-skills/tree/main/plugins/loyjoy-headless",
+      "license": "Apache-2.0",
+      "keywords": ["loyjoy", "mcp", "bpmn", "agent-management"]
     },
     {
-      "name": "phone-agent-builder",
-      "source": "./plugins/phone-agent-builder",
-      "category": "developer-tools"
+      "name": "loyjoy-phone-agent-builder",
+      "source": "./plugins/loyjoy-phone-agent-builder",
+      "description": "Create, configure, iterate, and debug LoyJoy phone agents and their custom voice prompts.",
+      "version": "0.1.0",
+      "category": "developer-tools",
+      "author": {
+        "name": "LoyJoy GmbH",
+        "email": "sebastian.deisel@loyjoy.com",
+        "url": "https://loyjoy.com"
+      },
+      "homepage": "https://github.com/loyjoy/loyjoy-skills/tree/main/plugins/loyjoy-phone-agent-builder",
+      "license": "Apache-2.0",
+      "keywords": ["loyjoy", "phone-agent", "voice", "prompt-engineering"]
     }
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "name": "phone-agent-builder",
+  "name": "loyjoy-phone-agent-builder",
   "description": "Create, configure, iterate, and debug LoyJoy phone agents and their custom voice prompts.",
   "version": "0.1.0",
   "author": {
@@ -7,8 +7,8 @@
     "email": "sebastian.deisel@loyjoy.com",
     "url": "https://loyjoy.com"
   },
-  "homepage": "https://github.com/loyjoy/loyjoy-headless",
-  "repository": "https://github.com/loyjoy/loyjoy-headless",
+  "homepage": "https://github.com/loyjoy/loyjoy-skills",
+  "repository": "https://github.com/loyjoy/loyjoy-skills",
   "license": "Apache-2.0",
   "keywords": ["loyjoy", "phone-agent", "voice", "prompt-engineering"],
   "dependencies": ["loyjoy-headless"]
