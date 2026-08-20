@@ -233,7 +233,7 @@ Before publishing:
 2. Call `process_model_check(process_id)`, require `blocking_count=0`, and review every `LOCALE_NOT_MAINTAINED` issue unless the user has explicitly approved the affected localized values.
 3. Call `process_diff(process_id)` and verify that staging contains only the changes the user intends to publish.
 4. Give a concise summary of what will enter production.
-5. Use a meaningful publication comment describing the change.
+5. Use a meaningful publication comment describing the change. This is a parameter of the process_publish tool.
 Do not interpret a request to edit, update, configure, or fix an agent as permission to publish it.
 
 
