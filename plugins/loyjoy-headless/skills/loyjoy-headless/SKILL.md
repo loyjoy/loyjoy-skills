@@ -46,9 +46,6 @@ Pick the first tool in this list that can express the change:
 2. `process_put_i18n` for a single-locale text on an existing `loyjoy:i18n` element. To add a new localized text, first create an `i18n` child with `process_add_extension_element(element_type="i18n", initial_attrs={"key":"<slot>/<parent-id>"})`, then call `process_put_i18n` with the returned i18n element id for every configured locale. Empty and whitespace-only text values are allowed; they do not remove the i18n element or its other locales.
 3. `process_put_list_attribute` for a JSON-array-valued attribute (add and remove individual items). Use for `loyjoy:knowledgeExcludedSources`, `loyjoy:aiBlockWords`, `loyjoy:locales`, `loyjoy:liveUserIds` and similar list attributes. Never reserialize the full array through `process_set_attribute` when a delta suffices.
 4. `process_set_attribute` for a single scalar attribute value on any element identified by its `id`. Resolve the exact attribute name first — see "Resolve attribute names before writing them".
-Passe den agent Spaßkasse an in loyjoy. Füge eine fortfahren-frage nach dem willkommen ein
-
-
 5. `process_add_subprocess`, `process_add_extension_element`, `process_remove_element`, and `process_move_element` for structural edits. Resolve the exact `subprocess_type` or `element_type` from the XSD (see "Change structure with add, remove, and move"), never guess it. The server generates fresh `id` and enforces parent-child compatibility, and cascades reference cleanup on removal (nulls dangling jump targets, drops orphan DMN entries, deletes unreferenced assets).
 6. `process_put_xml` only when none of the above can express the change atomically (large multi-field refactors, migrations).
 
