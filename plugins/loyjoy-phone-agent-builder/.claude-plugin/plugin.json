@@ -1,7 +1,7 @@
 {
   "name": "loyjoy-phone-agent-builder",
   "description": "Create, configure, iterate, and debug LoyJoy phone agents and their custom voice prompts.",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "author": {
     "name": "LoyJoy GmbH",
     "email": "sebastian.deisel@loyjoy.com",
