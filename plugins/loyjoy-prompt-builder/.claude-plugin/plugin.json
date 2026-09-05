@@ -1,6 +1,6 @@
 {
-  "name": "loyjoy-headless",
-  "description": "Inspect, edit, compare, and publish LoyJoy agent configurations through the LoyJoy Manager MCP server.",
+  "name": "loyjoy-prompt-builder",
+  "description": "Build, optimize, and debug custom prompts for LoyJoy chat agents on top of the LoyJoy standard chat prompt.",
   "version": "0.1.3",
   "author": {
     "name": "LoyJoy GmbH",
@@ -10,6 +10,6 @@
   "homepage": "https://github.com/loyjoy/loyjoy-skills",
   "repository": "https://github.com/loyjoy/loyjoy-skills",
   "license": "Apache-2.0",
-  "keywords": ["loyjoy", "mcp", "bpmn", "agent-management"],
-  "mcpServers": "./.mcp.json"
+  "keywords": ["loyjoy", "chat-agent", "prompt-engineering"],
+  "dependencies": ["loyjoy-headless"]
 }

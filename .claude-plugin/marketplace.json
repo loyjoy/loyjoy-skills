@@ -1,7 +1,7 @@
 {
   "name": "loyjoy-skills",
-  "description": "LoyJoy tools for managing agents and building phone-agent prompts.",
-  "version": "0.1.2",
+  "description": "LoyJoy tools for managing agents and building chat- and phone-agent prompts.",
+  "version": "0.1.3",
   "owner": {
     "name": "LoyJoy GmbH",
     "url": "https://loyjoy.com"
@@ -11,7 +11,7 @@
       "name": "loyjoy-headless",
       "source": "./plugins/loyjoy-headless",
       "description": "Inspect, edit, compare, and publish LoyJoy agent configurations through the LoyJoy Manager MCP server.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "category": "developer-tools",
       "author": {
         "name": "LoyJoy GmbH",
@@ -26,7 +26,7 @@
       "name": "loyjoy-phone-agent-builder",
       "source": "./plugins/loyjoy-phone-agent-builder",
       "description": "Create, configure, iterate, and debug LoyJoy phone agents and their custom voice prompts.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "category": "developer-tools",
       "author": {
         "name": "LoyJoy GmbH",
@@ -36,6 +36,21 @@
       "homepage": "https://github.com/loyjoy/loyjoy-skills/tree/main/plugins/loyjoy-phone-agent-builder",
       "license": "Apache-2.0",
       "keywords": ["loyjoy", "phone-agent", "voice", "prompt-engineering"]
+    },
+    {
+      "name": "loyjoy-prompt-builder",
+      "source": "./plugins/loyjoy-prompt-builder",
+      "description": "Build, optimize, and debug custom prompts for LoyJoy chat agents on top of the LoyJoy standard chat prompt.",
+      "version": "0.1.3",
+      "category": "developer-tools",
+      "author": {
+        "name": "LoyJoy GmbH",
+        "email": "sebastian.deisel@loyjoy.com",
+        "url": "https://loyjoy.com"
+      },
+      "homepage": "https://github.com/loyjoy/loyjoy-skills/tree/main/plugins/loyjoy-prompt-builder",
+      "license": "Apache-2.0",
+      "keywords": ["loyjoy", "chat-agent", "prompt-engineering"]
     }
   ]
 }

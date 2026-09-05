@@ -7,7 +7,7 @@
 ## What you can do with LoyJoy Skills
 
 1. **Manage your LoyJoy AI Agents in natural language** — inspect, edit, compare, and publish agent configurations yourself, without touching the visual editor and without a development ticket.
-2. **Build and debug phone agents** — create telephony-ready AI Agents, write and iterate custom voice prompts, and turn feedback from real test calls into concrete prompt changes.
+2. **Build and debug chat and phone agents** — create telephony-ready AI Agents, write and iterate custom prompts for both channels, and turn feedback from real conversations and test calls into concrete prompt changes.
 3. **Work safely** — the skills enforce LoyJoy best practices: tenant confirmation before every change, staging-vs-production diffs before edits, and minimal, semantic edits instead of risky full-document rewrites. Automated changes stay traceable and auditable.
 
 ## Skills in this repository
@@ -16,6 +16,7 @@
 |---|---|
 | [`loyjoy-headless`](plugins/loyjoy-headless) | Inspect, edit, compare, and publish LoyJoy agent configurations through the LoyJoy Manager MCP server. Covers instructions and prompts, modules and subprocesses, knowledge configuration, tools, branding, locales, and publishing workflows. |
 | [`loyjoy-phone-agent-builder`](plugins/loyjoy-phone-agent-builder) | Create, configure, iterate, and debug LoyJoy phone agents and their custom voice prompts. Covers the standard-plus-custom prompt architecture, voice-specific patterns (spoken numbers, digit confirmation, transfer with consent), and debugging from real test calls. |
+| [`loyjoy-prompt-builder`](plugins/loyjoy-prompt-builder) | Build, optimize, and debug custom prompts for LoyJoy chat agents. Covers the standard-plus-custom prompt architecture for chat, product and assortment consultation patterns, tool-call budget and context persistence, URL discipline, and model-specific tuning. |
 
 More skills are on the way, including analytics reporting, presentation and infographic generation from LoyJoy data, and knowledge management.
 
@@ -27,6 +28,7 @@ More skills are on the way, including analytics reporting, presentation and info
 /plugin marketplace add loyjoy/loyjoy-skills
 /plugin install loyjoy-headless@loyjoy-skills
 /plugin install loyjoy-phone-agent-builder@loyjoy-skills
+/plugin install loyjoy-prompt-builder@loyjoy-skills
 ```
 
 ### Other agents
