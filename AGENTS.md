@@ -1,6 +1,7 @@
 # AGENTS.md for loyjoy-skills
 
 - Changes MUST NOT be pushed to origin, automatically.
+- Skills MUST be written in English.
 
 ## Methodology
 
