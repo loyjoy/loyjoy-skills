@@ -12,8 +12,8 @@ When test calls show problems, diagnose in this order before changing anything.
 4. **Find the cause before adding a rule** (Entfernen vor Verbieten).
 5. **Suspect your own last edit first.** A new symptom right after a change is most likely caused by that change.
 6. **Ask whether the symptom depends on call length.** Correct early, wrong late points at accumulated context, not a missing rule.
-7. **Test one change at a time** on a real call. Never substitute a text chat evaluation for a voice test.
-8. **Confirm with a second sample.** Two to three calls before declaring it fixed.
+7. **Change one rule at a time**, then run the anticipation pass over the affected scenarios (see Antizipation statt Testanruf in `SKILL.md`). Never substitute a text chat evaluation for a voice test.
+8. **Declare nothing fixed without a call.** Where real calls are not available, report the change as applied and the fix as unverified, with the scenarios that should be called first.
 
 ### Layer-Zuordnung
 
@@ -38,6 +38,35 @@ When test calls show problems, diagnose in this order before changing anything.
 
 Name not-prompt-fixable items explicitly when reporting, route them to engineering, and keep prompt work on what the prompt can address.
 
+## Scenario matrix für die Antizipation
+
+Run all of these before every delivery. Add one row per configured use case. The rules for the pass are in `SKILL.md`, Antizipation statt Testanruf.
+
+Run all of these. Add one row per configured use case.
+
+| # | Scenario | What to check |
+| --- | --- | --- |
+| 1 | Happy path per use case | goal reached, exit transition fires, no section re-enters |
+| 2 | Caller states the anliegen in the first utterance | no entry question, no repeated greeting |
+| 3 | Anliegen unclear mid-call | classification without greeting and without the entry question |
+| 4 | Number capture, digits stated cleanly | one field, block-wise readback, done after confirmation |
+| 5 | Number capture, compound number ("einhundertachtundzwanzig") | accepted, not rejected, magnitude read correctly |
+| 6 | Number capture, correction after readback | value replaced, not extended; "nein" not parsed as "neun" |
+| 7 | Caller names data already given earlier | pre-fill fires, field not asked again |
+| 8 | Emergency trigger mid-flow | flow interrupted, number spoken from the prompt, no tool call in between |
+| 9 | Transfer request inside business hours | offer, consent, then transfer |
+| 10 | Transfer request outside business hours | transfer never named, callback or number instead |
+| 11 | Factual question late in a long call | fresh search, no reuse of earlier context |
+| 12 | Price question with a result containing no price | fallback sentence, no calculation, no estimate |
+| 13 | Question outside scope (competitor, small talk) | polite decline and steer back, no comparison |
+| 14 | Caller volunteers sensitive data | not recorded, single mention that it may not be |
+| 15 | Unintelligible audio, twice in a row | clarification, then escalation, no loop |
+| 16 | Ambiguous end signal ("okay", "mhm") | clarification turn, no hangup |
+| 17 | Clear end signal | farewell spoken in full, then hangup |
+| 18 | Caller speaks another language | language rule holds, or the agreed multilingual behavior |
+| 19 | Repetition across turns | acknowledgments and closings vary |
+| 20 | Tool named in the prompt is unavailable at runtime | no invented success claim |
+
 ## Side workflows
 
 ### Customer feedback analysis
@@ -59,6 +88,7 @@ Lead with the highest-severity finding even when the customer did not report it.
 - Full updated prompt with new or changed sentences highlighted in yellow (color code 10), removed text struck through in red. In Connected mode derive this from `process_diff`, not by hand.
 - Appendix listing items NOT addressed in the prompt (engineering and tool-configuration scope).
 - Measured prompt size before and after.
+- The anticipation matrix as the test script, with the open risks ordered by severity.
 - One-paragraph recommendation on next steps (review, publish, test call, observe for two to three days).
 
 Keep it under five pages. Customers read short documents.
@@ -95,7 +125,7 @@ Order by priority, not by discovery order.
 4. Paste the custom block.
 5. Configure the tools, including deactivating the ones flagged as superfluous.
 6. Configure the telephony number and routing.
-7. Publish and run a test call.
+7. Publish, then work through the anticipation matrix as a call script.
 
 Pack the prompt as a `.txt` attachment to avoid mail-client formatting breakage. Add a short screen recording if the customer team is new to the platform.
 
@@ -126,6 +156,7 @@ Pack the prompt as a `.txt` attachment to avoid mail-client formatting breakage.
 23. For every change this round: was a cause removed where one existed rather than a negative rule added, and was every superseded formulation deleted rather than left in parallel?
 24. Is logic written in words, with no pseudocode, and are bullets used instead of paragraphs?
 25. If test mode is active: does the test-mode section list every place that must change to switch it off?
-26. Was the prompt measured against its budget, was the redundancy sweep run, and was the self-critique pass done?
-27. Connected mode: XML round-trip identical after every write, blocking and `LOCALE_NOT_MAINTAINED` findings reviewed, `process_diff` reviewed, and publication status, telephony setup, and the real voice test reported separately?
+26. Did `scripts/prompt_check.py` run, are all ERROR findings fixed, is every accepted warning justified in the delivery, and was the self-critique pass done?
+27. Was the anticipation pass run over the full scenario matrix, are all defects fixed, and are the remaining risks listed as predictions rather than results?
+28. Connected mode: XML round-trip identical after every write, blocking and `LOCALE_NOT_MAINTAINED` findings reviewed, `process_diff` reviewed, and publication status, telephony setup, and the real voice test reported separately?
 

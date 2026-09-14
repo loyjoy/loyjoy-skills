@@ -1,6 +1,6 @@
 ---
 name: "loyjoy-phone-agent-builder"
-description: "Create and configure new LoyJoy phone agents in staging, and build, iterate, or debug their custom voice prompts. Covers the standard-plus-custom architecture, the mandatory realtime-model gate, LoyJoy MCP workflows, maintainable prompt structure, prompt-budget and redundancy checks, conformance with the OpenAI Realtime prompting guide, tool reconciliation, common phone use cases, voice-specific testing, and the boundary between a configured process and a telephony-ready agent. Use for requests such as \"Erstelle einen vollständigen Phone Agent\", \"Phonebot Prompt\", \"Voice-Agent anpassen\", \"Custom-Prompt für Telefon\", \"Phone Agent Feedback umsetzen\", \"Telefonbot debuggen\", or \"Voice-Prompt optimieren\"."
+description: "Create and configure new LoyJoy phone agents in staging, and build, iterate, or debug their custom voice prompts. Covers the standard-plus-custom architecture, the mandatory realtime-model gate, reading the versioned LoyJoy standard voice prompt from the monorepo, LoyJoy MCP workflows, maintainable prompt structure, a scripted prompt-budget and redundancy check, conformance with the OpenAI Realtime prompting guide, tool reconciliation, common phone use cases, an anticipation pass that replaces unavailable test calls, and the boundary between a configured process and a telephony-ready agent. Use for requests such as \"Erstelle einen vollständigen Phone Agent\", \"Phonebot Prompt\", \"Voice-Agent anpassen\", \"Custom-Prompt für Telefon\", \"Phone Agent Feedback umsetzen\", \"Telefonbot debuggen\", or \"Voice-Prompt optimieren\"."
 ---
 
 # LoyJoy Phone Agent Builder
@@ -18,6 +18,10 @@ This file carries the workflow and the rules that apply to every job. Three refe
 - `references/patterns.md` — recommended section structure for the custom block, the full pattern catalog, the anti-pattern list, and the template skeleton. Read when drafting or auditing a block.
 - `references/openai-guide.md` — conformance with the OpenAI Realtime prompting guide: section mapping, formatting rules, easily missed elements, and LoyJoy's declared deviations. Read before every delivery.
 - `references/debugging-and-delivery.md` — debugging workflow, symptom-to-layer routing table, side workflows (feedback analysis, change-proposal document, stakeholder mail, standard-prompt promotion, advisory setup), and the delivery checklist.
+
+One script carries the checks that must not be done by hand:
+
+- `scripts/prompt_check.py` — size against budget, duplicate sentences, overlap with the standard prompt, cross-reference resolution, tool consistency, search-discipline contradictions, and voice-formatting defects. Run it before every delivery.
 
 Section names referenced without a file belong to this file.
 
@@ -112,7 +116,8 @@ Before the first connected write, load the `loyjoy-headless` skill (this plugin'
 ### Hard limits of Connected mode
 
 - MCP can create, configure, validate, diff, and publish a process. It cannot create or upload assets, assign a phone number, configure external telephony routing, or perform a real voice call. Existing assets may only be referenced after their exact IDs and suitability have been verified.
-- **Do not use `chat_completions_eval` for phone agents.** It is a text chat path and does not represent the voice channel. A voice agent is verified through real test calls.
+- **Do not use `chat_completions_eval` for phone agents.** It is a text chat path and does not represent the voice channel.
+- **Real test calls are currently not available from this workflow.** Nothing in the toolchain can place or evaluate a call. This does not lower the bar, it moves the work forward: run the anticipation pass (see Antizipation statt Testanruf) and report the voice test as open.
 
 ### What "complete phone agent" means
 
@@ -122,22 +127,23 @@ Report these levels separately, never as one state:
 2. **Published**: the validated staging state was published after explicit user approval.
 3. **Telephony ready**: a phone number and external routing are connected, the active standard voice prompt and realtime model are confirmed, and representative real voice calls passed.
 
-MCP can reach levels 1 and 2. It cannot prove level 3. "Erstelle einen vollständigen Phone Agent" is therefore actionable, but the result is described as a fully configured staging process unless telephony setup and real test calls happened outside MCP.
+MCP can reach levels 1 and 2. It cannot prove level 3, and no test call can be placed from this workflow at all. "Erstelle einen vollständigen Phone Agent" is therefore actionable, but the result is described as a fully configured staging process whose voice behavior is anticipated, not verified. Never describe an anticipation pass as a test.
 
 ## Order of operations
 
 1. Determine the working mode (Connected or Advisory).
 2. Connected: confirm the tenant, resolve the process, read the smallest relevant XML fragments. Record the instruction's BPMN element ID and current `text`. Advisory: request the current custom block as text.
 3. **Fix the target model (see Modell festlegen). Do not draft before this is answered.**
-4. Confirm the LoyJoy standard voice prompt currently in use. The standard evolves; ask for the current version if in doubt. The custom block complements the standard, it does not duplicate it.
+4. Read the current LoyJoy standard voice prompt from the monorepo (see Den Standard-Prompt lesen). Do not ask the user which version is live. The custom block complements the standard, it does not duplicate it.
 5. Identify the project type: new build, optimization, debugging, or proposal document.
 6. Apply the Rückfragen-vor-Plan gate. Collect remaining constraints in one bundled round (see Clarification checklist).
 7. Reconcile the tool inventory (see Tool-Inventar abgleichen).
 8. Draft using the section structure and patterns in `references/patterns.md`. When iterating, always return the full updated custom block, not just the diff.
-9. Run the Prompt-Budget und Redundanzprüfung, then check the block against `references/openai-guide.md`.
-10. Connected: round-trip check after every write; before delivery run model checking, review locale issues, inspect the production-to-staging diff.
-11. Work through the delivery checklist in `references/debugging-and-delivery.md`.
-12. Report the three completeness levels separately. Publish only on explicit approval. Leave the real voice test visible as an open requirement until it has happened.
+9. Run `scripts/prompt_check.py` (Prompt-Budget und Redundanzprüfung), then check the block against `references/openai-guide.md`.
+10. Run the anticipation pass over the scenario matrix (see Antizipation statt Testanruf) and deliver its result with the prompt.
+11. Connected: round-trip check after every write; before delivery run model checking, review locale issues, inspect the production-to-staging diff.
+12. Work through the delivery checklist in `references/debugging-and-delivery.md`.
+13. Report the three completeness levels separately. Publish only on explicit approval. Leave the real voice test visible as an open requirement until it has happened.
 
 When test calls show problems, diagnose with the workflow and the layer table in `references/debugging-and-delivery.md` before changing anything.
 
@@ -192,6 +198,50 @@ Hard rule: do not duplicate standard rules in the custom block. Only override or
 
 When a mechanic turns out to be tenant-independent, promote it to the standard instead of copying it into the next custom block, and remove it from the custom blocks that already carry it. Number capture is the canonical example.
 
+### Den Standard-Prompt lesen, nicht danach fragen
+
+The standard is versioned in the LoyJoy monorepo and readable through the GitHub tools of the LoyJoy Admin MCP server. Read it at the start of every job instead of asking the user which version is live.
+
+Source of truth, `owner=loyjoy`, `repository=loyjoy`:
+
+```
+libs/loyjoy-bpmn-pom/loyjoy-bpmn-extension/src/main/java/
+  com/loyjoy/bpmn/extension/ai/instructions/InstructionSubTypesEnum.java
+```
+
+Read it with `github_repos_contents_get_string`. The prompt is not a resource file: every building block is a string constant in that enum. The blocks a phone agent receives:
+
+| Constant | Covers |
+| --- | --- |
+| `ROLE_PHONE` | role, scope boundary against other companies |
+| `BASE_PHONE` | turn-taking, acknowledge-first, bridging before tool calls, search obligation, tool budget (four calls per user message), URLs |
+| `PHONE_PRONUNCIATION_DEFAULT` | voice output, no markdown, spoken numbers and dates, spelled-out email addresses, digit-by-digit readback, data capture |
+| `REPLY_LENGTH_PHONE` | one to two sentences per turn |
+| `ANSWER_LANGUAGE_PHONE`, `ANSWER_LANGUAGE_QUESTION` | locale via `${displayLanguage()}` |
+| `CONTEXT_DATE` | date injection via `${localDateTime()}` |
+| `NAME_DEFAULT`, `REASONING_DEFAULT`, `PERSONALITY_DEFAULT`, `GUARDRAIL_ALL` | shared with chat agents |
+
+Which blocks a given agent type actually gets is decided in `seedPhoneAgent(...)`:
+
+```
+services/loyjoy-manager/loyjoy-manager-core/src/main/java/
+  com/loyjoy/manager/service/instructions/impl/InstructionsSeedServiceImpl.java
+```
+
+The final system message is assembled at runtime in `getSystemMessageWithInstructions(...)` (`services/loyjoy-runtime/loyjoy-runtime-ai/.../util/AiAgentSubProcessUtils.java`), which concatenates the active instructions with blank lines. Chat agents use a different set (`ROLE_DEFAULT`, `BASE`, `OUTPUT_FORMAT_MARKDOWN`, `REPLY_LENGTH_DEFAULT`, `CONTEXT_WEBSITE`, `ANSWER_LANGUAGE_DEFAULT`), which is why chat rules must never be copied into a voice block.
+
+Two properties of the current standard that change how a custom block is written:
+- `PHONE_PRONUNCIATION_DEFAULT` is written in German while the other blocks are English. A tenant served in another language needs an explicit language override, and a pronunciation rule in that language, in the custom block.
+- The phone tool budget is four calls per user message and resets with every new user message. A use case that needs more lookups than that per turn has to be restructured, not prompted harder.
+
+Extract the standard into a local file for the mechanical checks:
+
+```
+python3 scripts/prompt_check.py custom_block.txt --standard standard_prompt.txt
+```
+
+Every rule the checker reports as duplicated against the standard is deleted from the custom block or rewritten as a declared override. There is no third option.
+
 ## Wartbare Prompt-Struktur
 
 A phone-agent prompt is a long-lived artifact changed by several people over months. Structure it so the next change is cheap. This matters more than elegance of any single instruction.
@@ -209,29 +259,76 @@ A phone-agent prompt is a long-lived artifact changed by several people over mon
 
 ## Prompt-Budget und Redundanzprüfung
 
-Run this before every delivery, on every iteration, not only on the first draft. Measure, do not estimate.
+Run this before every delivery, on every iteration, not only on the first draft. **This check is mechanical and is not done by hand.** Measuring size, spotting near-duplicate sentences, resolving cross-references, and finding overlap with the standard are exactly the tasks a model performs unreliably and a script performs exactly.
 
-1. **Measure.** Count words and characters of the custom block, and of the standard plus custom block together. Report the number. A rough token estimate for German text is characters divided by three. Never quote a reduction without having counted before and after.
-2. **Compare against the budget.**
+### The checker
+
+```
+python3 scripts/prompt_check.py custom_block.txt \
+    --standard standard_prompt.txt \
+    --budget single|service|complex
+```
+
+Write the current custom block and the extracted standard prompt to files first (in Connected mode, take the block from `process_get_xml_grep`, the standard from the monorepo). The checker reports:
+
+| Check | What it catches |
+| --- | --- |
+| `size` | words, characters, token estimate, verdict against budget and hard ceiling |
+| `duplicate` | sentences inside the block that repeat each other above 70 percent similarity |
+| `standard` | sentences that duplicate a standard rule, which must be deleted or declared as an override |
+| `sections` | duplicate section names, and shared sections no use case references |
+| `crossref` | "siehe X" pointing at a section that does not exist |
+| `tools` | tool lines without an eagerness class, tools no use case uses |
+| `search` | a term appearing in both a must-search and a no-search rule |
+| `format` | markdown, emoji, pseudocode in a voice prompt |
+| `primitives` | validation that depends on counting digits |
+| `flow` | a stateful sequence written as a bullet list instead of a numbered flow |
+| `variety` | sample phrases without an anti-lock-in line, or no variety rule at all |
+| `date` | a hardcoded date without a date template |
+
+Exit code 1 means at least one ERROR. **Errors are fixed before delivery.** Warnings are decided deliberately and the decision is stated; they are not ignored silently. INFO lines are context, not findings.
+
+The checker finds mechanical defects. It cannot tell whether a rule is correct, whether a flow matches the business process, or whether the tone fits the brand. Those stay with you.
+
+### Budgets
 
 | Scope | Budget | Hard ceiling |
 | --- | --- | --- |
-| Custom block, single use case | ~800 tokens | 1,500 |
-| Custom block, typical service agent (3 to 6 use cases) | ~2,000 tokens | 3,000 |
-| Custom block, complex multi-flow agent | ~3,000 tokens | 4,000 |
-| Standard plus custom, total | ~5,000 tokens | 7,000 |
+| Custom block, single use case | 800 tokens | 1,500 |
+| Custom block, typical service agent (3 to 6 use cases) | 2,000 tokens | 3,000 |
+| Custom block, complex multi-flow agent | 3,000 tokens | 4,000 |
+| Standard plus custom, total | 5,000 tokens | 7,000 |
 
-   Over the budget, the prompt still works but every further change gets more expensive and instruction following starts to degrade unevenly. Over the hard ceiling, stop adding and restructure instead. On reasoning models, latency and cost scale with the prompt on every turn, so the budget is also a cost lever.
+Over budget the prompt still works, but every further change gets more expensive and instruction following degrades unevenly. Over the hard ceiling, stop adding and restructure. On reasoning models the prompt is re-read every turn, so the budget is also a latency and cost lever.
 
-3. **Redundancy sweep.** Mechanical, not from memory:
-   - Extract every imperative sentence and sort it. Near-identical neighbors are duplicates.
-   - Grep the custom block for each key term of the standard prompt (Begrüßung, Ziffern, Wissenssuche, Weiterleitung, Preis, Sprache, Markdown, Abschluss). A hit means either a legitimate declared override or a duplication to delete.
-   - Grep for each section name. A section mentioned nowhere else is either unreferenced dead weight or a missing cross-reference.
-   - List every tool name and confirm each appears in exactly one rules block.
-   - Check the must-search list against the no-search whitelist for items in both.
-4. **Cut in this order** when over budget: example lists first, then duplicated rules, then use cases the customer dropped, then rules for tools that are not configured, then wording. Never cut safety sections, the sensitive-data list, or the emergency numbers to save length.
-5. **Self-critique pass.** Before delivering, re-read the block once against these four questions and fix what you find: which instructions are ambiguous, which terms are undefined, which pairs conflict, which assumptions are unstated. Apply the fixes surgically; a rewrite at this stage loses the review history.
-6. **Report the result** with the delivery: measured size, what was removed, what was added, and whether the block is inside its budget.
+**Cut in this order** when over budget: example lists first, then duplicated rules, then use cases the customer dropped, then rules for tools that are not configured, then wording. Never cut safety sections, the sensitive-data list, or the emergency numbers to save length.
+
+### Self-critique pass
+
+The checker does not read for meaning. After it comes back clean, re-read the block once against four questions and fix what you find: which instructions are ambiguous, which terms are undefined, which pairs conflict, which assumptions are unstated. Apply fixes surgically; a rewrite at this stage loses the review history.
+
+### Report
+
+Deliver the checker output together with the prompt: measured size, what was removed, what was added, remaining warnings and why they were accepted.
+
+## Antizipation statt Testanruf
+
+Real test calls are not available from this workflow. That does not make the verification step optional, it changes what it consists of: instead of observing behavior, you predict it, in writing, against the prompt you just wrote. Done seriously this catches the majority of defects that a first test call would have caught, and it produces the script that whoever does get to call can work through.
+
+Rules for the pass:
+
+- **Simulate against the text, not from memory.** For each scenario, walk the caller's turns one by one and name the section and the sentence the agent would follow. A prediction without a cited sentence is a guess and does not count.
+- **Predict the failure, not the success.** Assume the caller is uncooperative: interrupts, answers a different question, gives a compound number, changes topic mid-flow, says "okay" ambiguously. The happy path is the least informative case.
+- **Two sections firing on the same turn is a finding.** Whenever two sections could both match a caller utterance, write down which one wins and why. If you cannot say, the prompt cannot either.
+- **Mark every prediction as a prediction.** It is a hypothesis until a human calls. Never phrase it as a result.
+
+The scenario matrix to run, twenty rows plus one per configured use case, is in `references/debugging-and-delivery.md`.
+
+### Deliverable of the pass
+
+A short table: scenario, predicted behavior, the section and sentence it comes from, and a verdict of ok, risk, or defect. Defects are fixed before delivery. Risks are listed for the first real call, ordered by severity, so whoever calls knows what to try first.
+
+State in one sentence that this is anticipation and that levels of certainty differ from a test. Hand the matrix over as the test script.
 
 ## Änderungen am bestehenden Prompt: Entfernen vor Verbieten
 
@@ -261,7 +358,7 @@ These are the mistakes made while fixing other mistakes. They cost more test cal
 - **Sweep the dependents when removing a rule.** A deleted rule usually has references elsewhere. Search for them in the same edit.
 - **After the third patch to one section, rewrite the section.** Three rounds of patching means the structure, not the wording, is wrong.
 - **Do not build a rule on a primitive the model is bad at.** Counting, arithmetic across many items, and precise length control are unreliable. Validation that depends on them produces false positives on correct data, which is worse than no validation.
-- **After a series of edits to one section, require a test call** before touching it again.
+- **After a series of edits to one section, run the anticipation pass over that section** before touching it again, and say that it is unverified. Repeated blind edits compound.
 - **Verify by search, not by memory.** After an edit round, grep for the terms you removed and for every cross-reference, and confirm each resolves.
 
 ## Tool-Inventar abgleichen
