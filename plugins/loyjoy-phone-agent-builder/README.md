@@ -9,7 +9,20 @@ Part of [LoyJoy Skills](https://github.com/loyjoy/loyjoy-skills) — the officia
 1. **Create** telephony-ready LoyJoy AI Agents in staging, end to end.
 2. **Build** custom voice prompts using the standard-plus-custom architecture — one maintainable, layered prompt instead of ad-hoc rewrites.
 3. **Iterate** on real test calls — turn concrete call feedback into concrete prompt changes without regressing existing behavior.
-4. **Debug** misbehavior — trace acknowledge-first, spoken-number, digit-confirmation, and transfer-with-consent issues to their prompt sources.
+4. **Debug** misbehavior — trace acknowledge-first, spoken-number, digit-confirmation, and transfer-with-consent issues to their prompt sources, and route the ones that are not prompt-fixable to the right layer.
+5. **Gate on the model** — the target realtime model (`gpt-realtime-1.5`, `gpt-realtime-2.1`, …) is fixed before the first line of prompt text, because it decides length budget, defensiveness, reasoning effort, and how examples are read.
+6. **Keep prompts lean** — `scripts/prompt_check.py` measures size against budget and sweeps for duplicates, overlap with the standard prompt, dangling cross-references, tool inconsistencies, and voice-formatting defects. Errors block delivery.
+7. **Anticipate instead of guess** — where real test calls are not available, a 20-scenario anticipation matrix predicts behavior against the written prompt and doubles as the call script.
+
+## Structure
+
+`SKILL.md` carries the workflow. Detail lives in three reference files loaded on demand:
+
+- `references/patterns.md` — custom-block section structure, pattern catalog, anti-patterns, template skeleton.
+- `references/openai-guide.md` — OpenAI Realtime prompting-guide conformance and LoyJoy's declared deviations.
+- `references/debugging-and-delivery.md` — debugging workflow, symptom-to-layer table, side workflows, delivery checklist.
+
+The standard voice prompt itself is not duplicated here. It is read from the LoyJoy monorepo through the GitHub tools of the LoyJoy Admin MCP server; `SKILL.md` names the exact file and the enum constants a phone agent receives.
 
 ## Voice vs. chat
 
