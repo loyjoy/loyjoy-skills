@@ -10,6 +10,6 @@
   "homepage": "https://github.com/loyjoy/loyjoy-skills",
   "repository": "https://github.com/loyjoy/loyjoy-skills",
   "license": "Apache-2.0",
-  "keywords": ["loyjoy", "phone-agent", "voice", "prompt-engineering"],
+  "keywords": ["loyjoy", "headless", "phone-agent", "voice", "prompt-engineering"],
   "dependencies": ["loyjoy-headless"]
 }
