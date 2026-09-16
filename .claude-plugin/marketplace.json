@@ -1,7 +1,7 @@
 {
   "name": "loyjoy-skills",
-  "description": "LoyJoy tools for managing agents and building phone-agent prompts.",
-  "version": "0.1.2",
+  "description": "Official LoyJoy plugins for building, managing, and publishing LoyJoy AI Agents for chat and phone.",
+  "version": "0.2.0",
   "owner": {
     "name": "LoyJoy GmbH",
     "url": "https://loyjoy.com"
@@ -10,9 +10,12 @@
     {
       "name": "loyjoy-headless",
       "source": "./plugins/loyjoy-headless",
-      "description": "Inspect, edit, compare, and publish LoyJoy agent configurations through the LoyJoy Manager MCP server.",
+      "displayName": "LoyJoy Headless",
+      "description": "Manage LoyJoy AI Agents in natural language: inspect and edit agent configurations, compare staging against production, and publish, through the LoyJoy Manager MCP server.",
       "version": "0.1.2",
-      "category": "developer-tools",
+      "category": "productivity",
+      "repository": "https://github.com/loyjoy/loyjoy-skills",
+      "tags": ["ai-agents", "customer-service", "conversational-ai", "no-code", "mcp"],
       "author": {
         "name": "LoyJoy GmbH",
         "email": "sebastian.deisel@loyjoy.com",
@@ -25,9 +28,12 @@
     {
       "name": "loyjoy-phone-agent-builder",
       "source": "./plugins/loyjoy-phone-agent-builder",
-      "description": "Create, configure, iterate, and debug LoyJoy phone agents and their custom voice prompts.",
-      "version": "0.1.2",
-      "category": "developer-tools",
+      "displayName": "LoyJoy Phone Agent Builder",
+      "description": "Create, configure, iterate, and debug LoyJoy phone agents and their custom voice prompts, with a realtime-model gate and OpenAI Realtime prompting-guide conformance checks.",
+      "version": "0.3.0",
+      "category": "productivity",
+      "repository": "https://github.com/loyjoy/loyjoy-skills",
+      "tags": ["ai-agents", "voice-ai", "customer-service", "telephony", "prompt-engineering"],
       "author": {
         "name": "LoyJoy GmbH",
         "email": "sebastian.deisel@loyjoy.com",
