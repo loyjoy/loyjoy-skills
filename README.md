@@ -6,7 +6,7 @@
 
 ## What you can do with LoyJoy Skills
 
-1. **Manage your LoyJoy AI Agents in natural language** — inspect, edit, compare, and publish agent configurations yourself, without touching the visual editor and without a development ticket.
+1. **Manage your LoyJoy AI Agents in natural language** — Create, inspect, edit, compare, and publish agent configurations yourself, without touching the visual editor and without a development ticket.
 2. **Build and debug phone agents** — create telephony-ready AI Agents, write and iterate custom voice prompts, and turn feedback from real test calls into concrete prompt changes.
 3. **Work safely** — the skills enforce LoyJoy best practices: tenant confirmation before every change, staging-vs-production diffs before edits, and minimal, semantic edits instead of risky full-document rewrites. Automated changes stay traceable and auditable.
 
