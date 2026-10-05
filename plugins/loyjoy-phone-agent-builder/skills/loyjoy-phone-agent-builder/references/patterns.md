@@ -80,7 +80,7 @@ Why: callers want control over whether and when they are put through. Even trans
 
 - Offer the transfer with the destination number spoken aloud, ask for explicit consent, transfer only after a clear yes.
 - If the receiving team has a short, memorable number, speak it actively even when a transfer tool exists. Many callers prefer to call back themselves.
-- Outside business hours, never offer the transfer. Give the number and the hours and end politely.
+- Outside business hours, apply Erreichbarkeit als Gate: give the number and the hours, and end politely.
 
 ### Pattern: Erreichbarkeit als Gate
 
@@ -89,7 +89,7 @@ Why: agents offer transfers outside business hours because the time check is wri
 - One section owns the opening hours and the check. Every use case that could transfer references it. Remove all other mentions.
 - Write it as a numbered gate that runs **before** the transfer is offered or even mentioned. Outside the hours the agent must not name transfer as an option at all.
 - The hours table must be unambiguous: one line per day, telephone hours only, no parenthetical alternatives, no on-site hours mixed in. A table with two candidate closing times per day cannot be resolved on a boundary case.
-- Confirm the platform injects the current time of day, not only the date. If only the date is available, none of this is prompt-fixable.
+- The current time of day is available in the prompt via template strings (`formattedLocalDateTime("HH")`); compute the open/closed state instead of describing it (see Pattern: Dynamischer Zustand über Template-Ausdruck).
 - When resolving a contradiction in customer-supplied hours, state the resolution and ask for confirmation. A wrong closing time causes transfers into an empty office.
 
 ### Pattern: Step-by-step Datenerfassung mit Recap

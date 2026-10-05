@@ -183,7 +183,7 @@ Before drafting, each item must be known from the brief, readable via MCP, or as
 - Whether a knowledge base exists at launch or the agent must work without one.
 - Email recipients for transcripts, callback requests, lead handoffs.
 - Transfer target: real telephony transfer with hidden number, or spoken referral only.
-- Working hours of the receiving human team, and whether the platform injects the current time of day rather than only the date.
+- Working hours of the receiving human team.
 - Emergency or safety scenarios requiring special routing (outages, gas leaks, claims with injuries, accidents).
 - Sensitive data the agent must never collect or disclose.
 - Number fields to capture (customer number, contract number, meter reading, booking reference) and whether DTMF keypad entry is available.
@@ -236,7 +236,7 @@ Two properties of the current standard that change how a custom block is written
 - `PHONE_PRONUNCIATION_DEFAULT` is written in German while the other blocks are English. A tenant served in another language needs an explicit language override, and a pronunciation rule in that language, in the custom block.
 - The phone tool budget is four calls per user message and resets with every new user message. A use case that needs more lookups than that per turn has to be restructured, not prompted harder.
 
-The custom block uses the same template strings as the standard: `${...}` resolves at runtime, including a ternary operator and function calls such as `formattedLocalDateTime("HH")`, `localDateDayOfWeek()`, or `arrayIncludes("[2, 3]", 3)`. The full list is in the LoyJoy docs at `agents/modules/functions/functions.md`. Use it to inject the current time or state (e.g. "Servicecenter ist gerade geöffnet / geschlossen") instead of leaving the model to derive it. Dynamic values belong at the end of the block: the system message is a concatenation, prefix caching keeps only the static head cached, and a template expression in the middle breaks the cacheable prefix (see Pattern: Dynamischer Zustand über Template-Ausdruck).
+The custom block uses the same template strings as the standard: `${...}` resolves at runtime, including a ternary operator and function calls such as `formattedLocalDateTime("HH")`, `localDateDayOfWeek()`, or `arrayIncludes("[2, 3]", 3)`. The full list is in the LoyJoy docs at `agents/modules/functions/functions.md`. Use it to inject the current time or state (e.g. "Servicecenter ist gerade geöffnet / geschlossen") instead of leaving the model to derive it. Placement of dynamic values follows Pattern: Dynamischer Zustand über Template-Ausdruck in `references/patterns.md`.
 
 Extract the standard into a local file for the mechanical checks:
 

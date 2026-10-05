@@ -42,8 +42,6 @@ Name not-prompt-fixable items explicitly when reporting, route them to engineeri
 
 Run all of these before every delivery. Add one row per configured use case. The rules for the pass are in `SKILL.md`, Antizipation statt Testanruf.
 
-Run all of these. Add one row per configured use case.
-
 | # | Scenario | What to check |
 | --- | --- | --- |
 | 1 | Happy path per use case | goal reached, exit transition fires, no section re-enters |
