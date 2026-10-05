@@ -205,6 +205,15 @@ Why: hardcoded dates go stale and produce wrong output the moment the date passe
 - Always use a date template variable. In LoyJoy: `${localDate()}` or equivalent.
 - If templates are unsupported in custom blocks, agree on a refresh cadence and a calendar reminder.
 
+### Pattern: Dynamischer Zustand über Template-Ausdruck
+
+Why: a status that depends on the current time (open/closed, opening hours, holiday) is wrong the moment it is written statically; the model cannot compute it reliably and should receive it resolved.
+
+- LoyJoy resolves template strings `${...}` in the custom block at runtime, including a ternary operator and function calls. Use this to inject state that changes with the current time instead of describing or guessing it.
+- Opening status as the canonical example. Combine `localDateDayOfWeek()` (`1` = Monday, `7` = Sunday) with `toInteger(formattedLocalDateTime("HH"))` and evaluate the hours, e.g. outside regular hours the block resolves to `"Servicecenter ist gerade geschlossen"`, inside to `"Servicecenter ist gerade geöffnet"`. Let the resolved state carry the decision; the agent references it instead of deriving hours itself.
+- Other functions are available, e.g. `arrayIncludes("[2, 3]", 3)` -> `true`. The full list is in the LoyJoy docs at `agents/modules/functions/functions.md`; use pattern and timezone parameters such as `formattedLocalDateTime("EEEE, dd.MM.YYYY HH:mm")` where the tenant needs them.
+- Placement rule for caching: dynamic values belong at the end of the prompt. The system message is a concatenation and prefix caching keeps only the static head cached; a template expression in the middle breaks the cacheable prefix and adds latency and cost on every call. Keep the static head (role, persona, tools) above the dynamic tail (date, status, opening state).
+
 ### Pattern: Out-of-Scope Steering
 
 Why: callers will ask about competitors, weather, generic chat.

@@ -53,7 +53,7 @@ Go straight to work when:
 - The user has already answered the same questions earlier in the conversation.
 
 How to ask:
-- One round, bundled. Short, decision-shaped questions, not open prose.
+- One round, bundled. Use AskUserQuestion where available, with short, decision-shaped options, not open prose questions.
 - Maximum four questions. Prioritize the ones that change the structure of the prompt, not the wording.
 - State your own recommendation per question. The user wants a sparring partner, not a form.
 - Never ask for information you can read yourself via MCP.
@@ -234,6 +234,8 @@ Two properties of the current standard that change how a custom block is written
 - `PHONE_PRONUNCIATION_DEFAULT` is written in German while the other blocks are English. A tenant served in another language needs an explicit language override, and a pronunciation rule in that language, in the custom block.
 - The phone tool budget is four calls per user message and resets with every new user message. A use case that needs more lookups than that per turn has to be restructured, not prompted harder.
 
+The custom block uses the same template strings as the standard: `${...}` resolves at runtime, including a ternary operator and function calls such as `formattedLocalDateTime("HH")`, `localDateDayOfWeek()`, or `arrayIncludes("[2, 3]", 3)`. The full list is in the LoyJoy docs at `agents/modules/functions/functions.md`. Use it to inject the current time or state (e.g. "Servicecenter ist gerade geöffnet / geschlossen") instead of leaving the model to derive it. Dynamic values belong at the end of the block: the system message is a concatenation, prefix caching keeps only the static head cached, and a template expression in the middle breaks the cacheable prefix (see Pattern: Dynamischer Zustand über Template-Ausdruck).
+
 Extract the standard into a local file for the mechanical checks:
 
 ```
@@ -269,11 +271,15 @@ python3 scripts/prompt_check.py custom_block.txt \
     --budget single|service|complex
 ```
 
-Write the current custom block and the extracted standard prompt to files first (in Connected mode, take the block from `process_get_xml_grep`, the standard from the monorepo). The checker reports:
+Write the current custom block and the extracted standard prompt to files first (in Connected mode, take the block from `process_get_xml_grep`, the standard from the monorepo).
+
+If `scripts/prompt_check.py` is missing from your installation, write an equivalent throwaway script in the session that implements the checks below and run that. **Do not perform these checks by hand under any circumstances.**
+
+The checker reports:
 
 | Check | What it catches |
 | --- | --- |
-| `size` | words, characters, token estimate, verdict against budget and hard ceiling |
+| `size` | words, characters, token estimate (German: characters divided by three), verdict against budget and hard ceiling |
 | `duplicate` | sentences inside the block that repeat each other above 70 percent similarity |
 | `standard` | sentences that duplicate a standard rule, which must be deleted or declared as an override |
 | `sections` | duplicate section names, and shared sections no use case references |
@@ -284,7 +290,7 @@ Write the current custom block and the extracted standard prompt to files first 
 | `primitives` | validation that depends on counting digits |
 | `flow` | a stateful sequence written as a bullet list instead of a numbered flow |
 | `variety` | sample phrases without an anti-lock-in line, or no variety rule at all |
-| `date` | a hardcoded date without a date template |
+| `date` | a hardcoded date without a date template; dynamic template expressions placed in the middle instead of at the end |
 
 Exit code 1 means at least one ERROR. **Errors are fixed before delivery.** Warnings are decided deliberately and the decision is stated; they are not ignored silently. INFO lines are context, not findings.
 

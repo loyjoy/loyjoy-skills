@@ -40,6 +40,11 @@ MARKDOWN_INLINE = re.compile(r"(\[[^\]]{1,60}\]\([^)]{1,200}\)|\*\*|__|`[^`]{1,4
 EMOJI = re.compile("[\U0001F000-\U0001FAFF☀-➿]")
 HARDCODED_DATE = re.compile(r"\b(\d{1,2}\.\s?\d{1,2}\.\s?\d{2,4}|\b20\d{2}\b)")
 DATE_TEMPLATE = re.compile(r"\$\{[^}]*[Dd]ate[^}]*\}")
+TEMPLATE_EXPR = re.compile(r"\$\{[^}]*\}")
+DYNAMIC_TEMPLATE = re.compile(
+    r"\$\{[^}]*\b(?:formattedLocalDate(?:Time)?|localDate(?:DayOfWeek|DayOfMonth|MonthOfYear|Year)?"
+    r"|localDateTime|displayLanguage|clientLocale|arrayIncludes|arrayLength|toInteger"
+    r"|timestamp(?:Ms)?)\s*\(")
 DIGIT_COUNT = re.compile(r"(anzahl\s+der\s+ziffern|zähl|zaehl|wie\s+viele\s+ziffern|digit\s+count)", re.I)
 HEADING = re.compile(r"^\s{0,3}#{1,4}\s+(.+?)\s*$", re.M)
 NUMBERED = re.compile(r"^\s*\d+[.)]\s+", re.M)
@@ -242,7 +247,10 @@ def check_formatting(text, rep):
         break
     if EMOJI.search(text):
         rep.error("format", "Emoji im Sprach-Prompt. Emojis lassen sich nicht sprechen.")
-    for m in PSEUDOCODE.finditer(text):
+    # Template expressions are runtime-resolved and may legitimately contain
+    # operators (==, >=, &&). Mask them before the pseudocode scan.
+    masked = TEMPLATE_EXPR.sub("TEMPLATE", text)
+    for m in PSEUDOCODE.finditer(masked):
         line = text[:m.start()].count("\n") + 1
         rep.error("format", f"Zeile {line}: Pseudocode statt Satz (\"{m.group(0)}\"). "
                             "Logik ausformulieren.", line)
@@ -252,6 +260,19 @@ def check_formatting(text, rep):
     if HARDCODED_DATE.search(text) and not DATE_TEMPLATE.search(text):
         rep.warn("date", "Festes Datum oder Jahreszahl ohne Datums-Template. "
                          "${localDate()} oder Äquivalent verwenden.")
+    # Dynamic template values (date, time, state) belong at the end: the system
+    # message is a concatenation, only the static head stays cacheable, and a
+    # dynamic expression in the middle breaks the prefix cache.
+    total = len(text.splitlines())
+    if total:
+        # First ~70% of lines are the cacheable static head.
+        cutoff = max(1, int(total * 0.7))
+        for m in DYNAMIC_TEMPLATE.finditer(text):
+            line = text[:m.start()].count("\n") + 1
+            if 1 <= line <= cutoff:
+                rep.warn("date", f"Zeile {line}: dynamischer Template-Ausdruck im statischen Teil "
+                                 f"({line}/{total}). Ans Ende verschieben, sonst wird der "
+                                 "Cache-Präfix gebrochen.", line)
 
 
 def check_flows(text, rep):
