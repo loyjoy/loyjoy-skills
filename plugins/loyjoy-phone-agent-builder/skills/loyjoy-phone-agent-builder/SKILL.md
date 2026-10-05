@@ -13,9 +13,10 @@ The skill is meant for internal LoyJoy use and for sharing with customers. It na
 
 ## Reference files
 
-This file carries the workflow and the rules that apply to every job. Three reference files carry the detail; read the relevant one when the step calls for it.
+This file carries the workflow and the rules that apply to every job. Four reference files carry the detail; read the relevant one when the step calls for it.
 
 - `references/patterns.md` — recommended section structure for the custom block, the full pattern catalog, the anti-pattern list, and the template skeleton. Read when drafting or auditing a block.
+- `references/working-copy.md` — the session working file: the custom block as a file, the iteration loop, snapshots, and the handover rules. Read when drafting or iterating, and before writing a block to the platform.
 - `references/openai-guide.md` — conformance with the OpenAI Realtime prompting guide: section mapping, formatting rules, easily missed elements, and LoyJoy's declared deviations. Read before every delivery.
 - `references/debugging-and-delivery.md` — debugging workflow, symptom-to-layer routing table, side workflows (feedback analysis, change-proposal document, stakeholder mail, standard-prompt promotion, advisory setup), and the delivery checklist.
 
@@ -135,15 +136,16 @@ MCP can reach levels 1 and 2. It cannot prove level 3, and no test call can be p
 2. Connected: confirm the tenant, resolve the process, read the smallest relevant XML fragments. Record the instruction's BPMN element ID and current `text`. Advisory: request the current custom block as text.
 3. **Fix the target model (see Modell festlegen). Do not draft before this is answered.**
 4. Read the current LoyJoy standard voice prompt from the monorepo (see Den Standard-Prompt lesen). Do not ask the user which version is live. The custom block complements the standard, it does not duplicate it.
-5. Identify the project type: new build, optimization, debugging, or proposal document.
-6. Apply the Rückfragen-vor-Plan gate. Collect remaining constraints in one bundled round (see Clarification checklist).
-7. Reconcile the tool inventory (see Tool-Inventar abgleichen).
-8. Draft using the section structure and patterns in `references/patterns.md`. When iterating, always return the full updated custom block, not just the diff.
-9. Run `scripts/prompt_check.py` (Prompt-Budget und Redundanzprüfung), then check the block against `references/openai-guide.md`.
-10. Run the anticipation pass over the scenario matrix (see Antizipation statt Testanruf) and deliver its result with the prompt.
-11. Connected: round-trip check after every write; before delivery run model checking, review locale issues, inspect the production-to-staging diff.
-12. Work through the delivery checklist in `references/debugging-and-delivery.md`.
-13. Report the three completeness levels separately. Publish only on explicit approval. Leave the real voice test visible as an open requirement until it has happened.
+5. Materialize the session working files `custom.txt` and `standard.txt` (see `references/working-copy.md`). From here on the block lives in the file and is never reprinted in the chat.
+6. Identify the project type: new build, optimization, debugging, or proposal document.
+7. Apply the Rückfragen-vor-Plan gate. Collect remaining constraints in one bundled round (see Clarification checklist).
+8. Reconcile the tool inventory (see Tool-Inventar abgleichen).
+9. Draft and iterate on the session working file, using the section structure and patterns in `references/patterns.md` (see `references/working-copy.md`).
+10. Run `scripts/prompt_check.py` (Prompt-Budget und Redundanzprüfung), then check the block against `references/openai-guide.md`.
+11. Run the anticipation pass over the scenario matrix (see Antizipation statt Testanruf) and deliver its result with the prompt.
+12. Connected: round-trip check after every write; before delivery run model checking, review locale issues, inspect the production-to-staging diff.
+13. Work through the delivery checklist in `references/debugging-and-delivery.md`.
+14. Report the three completeness levels separately. Publish only on explicit approval. Leave the real voice test visible as an open requirement until it has happened.
 
 When test calls show problems, diagnose with the workflow and the layer table in `references/debugging-and-delivery.md` before changing anything.
 
@@ -165,7 +167,7 @@ Then follow "Create a phone agent" in the `loyjoy-headless` skill's `references/
 ### Editing an existing custom instruction in Connected mode
 
 1. Locate the instruction with `process_get_xml_grep` and read its full current text.
-2. Apply the methodology in this skill and obtain approval for the complete replacement text.
+2. Apply the methodology in this skill on the session working file and obtain approval for the complete replacement text (see `references/working-copy.md`).
 3. Write with `process_set_attribute(process_id, element_id, name="text", value="...")`.
 4. Run `process_staging_xml_roundtrip_diff`, `process_model_check`, `process_diff`; inspect locale warnings as well as blocking findings.
 
@@ -271,7 +273,7 @@ python3 scripts/prompt_check.py custom_block.txt \
     --budget single|service|complex
 ```
 
-Write the current custom block and the extracted standard prompt to files first (in Connected mode, take the block from `process_get_xml_grep`, the standard from the monorepo).
+Write the current custom block and the extracted standard prompt to files first — these are the session working files (see `references/working-copy.md`; in Connected mode, take the block from `process_get_xml_grep`, the standard from the monorepo).
 
 If `scripts/prompt_check.py` is missing from your installation, write an equivalent throwaway script in the session that implements the checks below and run that. **Do not perform these checks by hand under any circumstances.**
 
@@ -398,7 +400,7 @@ A tenant-specific override (e.g. a pronunciation rule) is stated explicitly in t
 - Compact answers. No filler, no unnecessary em dashes.
 - Numbered lists where the user needs to reference items by number.
 - Honest diagnostics. When a problem cannot be solved at the requested layer, say so plainly and route it.
-- When iterating, always return the full updated artifact, not just the diff.
+- When iterating, edit the session working file and report the change in one or two sentences; never reprint the artifact in the chat (see `references/working-copy.md`). Hand over the complete final file, or write it to the platform, after approval.
 - Sparring tone: push back when the proposed change creates a new problem, especially when it would add scar tissue instead of removing a cause, or when a literal reading would overcorrect.
 - When the user proposes a better solution than yours, say so plainly and adopt it.
 - Mark exactly what is new and what was removed. Removals matter as much as additions.
