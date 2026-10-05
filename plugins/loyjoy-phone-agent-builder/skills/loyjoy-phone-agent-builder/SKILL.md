@@ -28,13 +28,7 @@ Section names referenced without a file belong to this file.
 
 ## When to start
 
-Invoke this skill when the user wants to:
-- create or configure a complete phone agent in LoyJoy,
-- build a new phone-agent prompt from scratch,
-- optimize an existing prompt from test calls or customer feedback,
-- debug a specific misbehavior,
-- turn a workshop protocol, feature list, or use-case backlog into a working prompt,
-- produce a change-proposal document for a customer.
+Invoke this skill for any phone-agent work: creating or configuring an agent, building or optimizing a prompt (from test calls, customer feedback, or a workshop protocol), debugging misbehavior, or producing a change-proposal document.
 
 ## Rückfragen vor Plan
 
@@ -69,6 +63,8 @@ Establish it in this order:
 2. If the user does not know, ask which model class the deployment runs on and do not proceed with a draft until it is answered.
 3. Only if the question genuinely cannot be answered in this session, write for the weakest plausible model (the non-reasoning class) and state that assumption in the first line of the delivery. Rules calibrated for the weaker model also work on the stronger one; the reverse is false.
 
+Every prompt delivery, change proposal, and stakeholder mail states the model the prompt was written for. A custom block handed over without that line will eventually be pasted onto a different model and blamed for the result.
+
 ### Model classes and what they change
 
 | Class | Examples | Reasoning | Prompt implications |
@@ -82,10 +78,6 @@ Known behavior deltas worth asking about before promising anything:
 - Azure-hosted `gpt-realtime-1.5` in the EU data zone lacks Semantic VAD. Turn-taking complaints on that deployment are an infrastructure item, not a prompt item.
 - Model names and availability change. Confirm the configured model per tenant; never infer it from this table.
 
-### Record the model in the delivery
-
-Every prompt delivery, change proposal, and stakeholder mail states the model the prompt was written for. A custom block handed over without that line will eventually be pasted onto a different model and blamed for the result.
-
 ## Arbeitsmodus: Advisory oder Connected
 
 **Connected**: the LoyJoy MCP tools are available for the relevant tenant. Default whenever they are. Work against the real state of the agent, not a pasted snapshot.
@@ -96,23 +88,11 @@ A tenant may contain a prototype or demo copy while the productive agent lives i
 
 ### Toolchain in Connected mode
 
-Before the first connected write, load the `loyjoy-headless` skill (this plugin's dependency) and follow its rules for tenant selection, targeted reads, staging writes, round-trip validation, model checking, diff review, and publishing. This skill adds the phone-specific decisions; it does not replace the headless safety workflow.
+Before the first connected write, load the `loyjoy-headless` skill (this plugin's dependency) and follow its rules for tenant confirmation, targeted reads, narrow writes, round-trip validation, model checking, locale completeness, diff review, and publishing. The phone-specific additions:
 
-1. `tenant_meta` and `processes_list` — confirm the tenant and resolve an existing agent by name. Never guess IDs.
-2. `process_get_xml_grep` — read the smallest relevant XML fragments: the custom instruction, the configured tools, and the model configuration. Use `process_get_xml` only when the whole structure is genuinely needed.
-3. `process_create`, `process_set_attribute`, `process_add_extension_element` — create or edit the staging process. Update an instruction with `process_set_attribute(..., name="text", value="...")`. Create a missing one with `process_add_extension_element(element_type="instruction", initial_attrs={"type":"custom","text":"..."})`.
-4. `process_staging_xml_roundtrip_diff` — run after every write. Continue only when the result is identical.
-5. `process_model_check` — BPMN correctness; inspect `LOCALE_NOT_MAINTAINED` issues for language gaps before delivery or publishing.
-6. `process_diff` — review the complete production-to-staging change.
-7. `process_publish` — only after the user explicitly requests or approves publication.
-
-### Rules for write access
-
-- Never write without having read the current state in the same session.
-- Never write a block the user has not seen and approved.
-- Run `process_staging_xml_roundtrip_diff` after every write and `process_diff` after the complete change.
-- One logical change per write. Five requested items can be one write, but do not bundle unrelated cleanup into it silently. Name what you changed.
-- Work in staging. Touch production only through `process_publish`, and only with explicit approval.
+- Resolve the agent by name via `processes_list`; never guess IDs. Read the custom instruction, the configured tools, and the model configuration as the smallest relevant XML fragments via `process_get_xml_grep`.
+- Never write a prompt block the user has not seen and approved.
+- One logical change per write; name what you changed, and never bundle unrelated cleanup into it silently.
 
 ### Hard limits of Connected mode
 
@@ -153,16 +133,11 @@ When test calls show problems, diagnose with the workflow and the layer table in
 
 Do not create an empty process while essential requirements are unknown. Work through the Clarification checklist first.
 
-Then follow "Create a phone agent" in the `loyjoy-headless` skill's `references/examples.md`. Its tool arguments and validation sequence are authoritative. The phone-specific gates:
+Then follow "Create a phone agent" in the `loyjoy-headless` skill's `references/examples.md`; its tool arguments and validation sequence are authoritative. The phone-specific gates:
 
-1. `process_create`, then `process_staging_xml_roundtrip_diff`.
-2. Set `name="loyjoy:type"` to `value="phone_agent"` on `element_id=process_id`, round-trip again.
-3. Add exactly one `process_add_subprocess(process_id, parent_id=process_id, subprocess_type="AI_AGENT_SUBPROCESS")`, retain its ID, round-trip again.
-4. Under that subprocess, add one custom `instruction` extension element with `type=custom` and the complete approved text. Round-trip.
-5. Configure only tools required by the approved use cases. Use exact element types and attributes discovered through the schema and existing structure; never invent a tool name.
-6. Add all customer-visible texts for every configured process locale. Run `process_model_check` and resolve every `LOCALE_NOT_MAINTAINED` issue introduced by the task.
-7. `process_model_check`, resolve blocking findings, review `process_diff`.
-8. Report what is complete and what remains for telephony readiness. Publish only after explicit approval.
+1. Set `name="loyjoy:type"` to `value="phone_agent"` on `element_id=process_id`.
+2. Exactly one `AI_AGENT_SUBPROCESS` under the process, with the custom `instruction` (`type=custom`, the complete approved text) under it.
+3. Configure only tools the approved use cases require; use exact element types and attributes from the schema, never invent a tool name.
 
 ### Editing an existing custom instruction in Connected mode
 
@@ -230,7 +205,7 @@ services/loyjoy-manager/loyjoy-manager-core/src/main/java/
   com/loyjoy/manager/service/instructions/impl/InstructionsSeedServiceImpl.java
 ```
 
-The final system message is assembled at runtime in `getSystemMessageWithInstructions(...)` (`services/loyjoy-runtime/loyjoy-runtime-ai/.../util/AiAgentSubProcessUtils.java`), which concatenates the active instructions with blank lines. Chat agents use a different set (`ROLE_DEFAULT`, `BASE`, `OUTPUT_FORMAT_MARKDOWN`, `REPLY_LENGTH_DEFAULT`, `CONTEXT_WEBSITE`, `ANSWER_LANGUAGE_DEFAULT`), which is why chat rules must never be copied into a voice block.
+The final system message is assembled at runtime in `getSystemMessageWithInstructions(...)` (`services/loyjoy-runtime/loyjoy-runtime-ai/.../util/AiAgentSubProcessUtils.java`), which concatenates the active instructions with blank lines. Chat agents assemble a different set of blocks, which is why chat rules must never be copied into a voice block.
 
 Two properties of the current standard that change how a custom block is written:
 - `PHONE_PRONUNCIATION_DEFAULT` is written in German while the other blocks are English. A tenant served in another language needs an explicit language override, and a pronunciation rule in that language, in the custom block.
