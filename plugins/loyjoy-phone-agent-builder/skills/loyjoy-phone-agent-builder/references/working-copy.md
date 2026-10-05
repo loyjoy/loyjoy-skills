@@ -17,7 +17,7 @@ Reprinting the full custom block in the chat on every iteration wastes the conve
 
 1. Snapshot the file before each decision point: `custom.r00.txt`, `custom.r01.txt`, … Snapshots are copies, never edited.
 2. Edit `custom.txt` line by line, one logical change per round.
-3. Run `scripts/prompt_check.py custom.txt --standard standard.txt` on every round. Findings name file lines; fix them at those lines.
+3. Run `scripts/prompt_check.py custom.txt --standard standard.txt` on every round. Findings name file lines and sections; fix them at those lines. A round ends only when `duplicate`, `standard`, and `topics` report no ERROR; accepted WARNs are named in the round report.
 4. Report the round in the chat in one or two sentences: what changed and why, what was removed. No block text, no diff.
 5. Revert means copying the affected lines back from a snapshot with an edit. No git.
 

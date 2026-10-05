@@ -282,9 +282,10 @@ The checker reports:
 | Check | What it catches |
 | --- | --- |
 | `size` | words, characters, token estimate (German: characters divided by three), verdict against budget and hard ceiling |
-| `duplicate` | sentences inside the block that repeat each other above 70 percent similarity |
+| `duplicate` | sentences inside the block that repeat each other above 70 percent similarity, and a shorter sentence fully contained in a longer one (partial duplicate) |
 | `standard` | sentences that duplicate a standard rule, which must be deleted or declared as an override |
 | `sections` | duplicate section names, and shared sections no use case references |
+| `topics` | a topic regulated in more than one section, excluding sentences that merely reference another section; also prints the topic map |
 | `crossref` | "siehe X" pointing at a section that does not exist |
 | `tools` | tool lines without an eagerness class, tools no use case uses |
 | `search` | a term appearing in both a must-search and a no-search rule |
@@ -313,7 +314,7 @@ Over budget the prompt still works, but every further change gets more expensive
 
 ### Self-critique pass
 
-The checker does not read for meaning. After it comes back clean, re-read the block once against four questions and fix what you find: which instructions are ambiguous, which terms are undefined, which pairs conflict, which assumptions are unstated. Apply fixes surgically; a rewrite at this stage loses the review history.
+The checker does not read for meaning. After it comes back clean, re-read the block once against five questions and fix what you find: which instructions are ambiguous, which terms are undefined, which pairs conflict, which assumptions are unstated, and which topic is regulated in more than one section (the checker's topics map names the candidates). Apply fixes surgically; a rewrite at this stage loses the review history.
 
 ### Report
 

@@ -6,9 +6,10 @@ Usage:
 
 Runs the measurements and sweeps that the skill requires before every delivery
 and that a model does not perform reliably by hand: size against budget,
-duplicate sentences, cross-reference resolution, overlap with the standard
-prompt, tool-name consistency, search-discipline contradictions, and a set of
-formatting checks.
+duplicate sentences (including shorter sentences contained in longer ones),
+cross-reference resolution, overlap with the standard prompt, topic ownership
+(one topic, one section), tool-name consistency, search-discipline
+contradictions, and a set of formatting checks.
 
 Every finding is a pointer, not a verdict. Read the named line before changing
 anything. Exit code is 1 when at least one ERROR-level finding exists.
@@ -50,6 +51,32 @@ HEADING = re.compile(r"^\s{0,3}#{1,4}\s+(.+?)\s*$", re.M)
 NUMBERED = re.compile(r"^\s*\d+[.)]\s+", re.M)
 BULLET = re.compile(r"^\s*[-*+]\s+", re.M)
 
+# Topics that one section must own exclusively. Prefix matching on word
+# boundaries, so "ziffer" also matches "Ziffernfolge". Extend the lists when a
+# tenant adds a topic; topics here are heuristics, WARN is a pointer.
+TOPIC_TERMS = {
+    "Ziffern erfassen": ("ziffer",),
+    "Preis": ("preis", "kosten", "tarif", "gebühr", "gebuehr"),
+    "Suche/Wissen": ("suche", "sucht", "suchen", "wissensbasis", "knowledge", "nachschlag"),
+    "Transfer/Weiterleitung": ("transfer", "weiterleit", "durchstell", "durchverbind"),
+    "Datenschutz/sensible Daten": ("datenschutz", "sensibl", "gesundheitsdaten"),
+    "Erreichbarkeit/Zeiten": ("erreichbar", "servicezeit", "öffnungszeit", "geöffnet", "geoeffnet",
+                             "geschlossen"),
+    "Sprache": ("sprache", "englisch", "deutsch", "fremdsprache"),
+    "Begrüßung": ("begrüßung", "begruessung", "grüß", "gruess"),
+    "Gesprächsabschluss": ("gesprächsabschluss", "gespraechsabschluss", "verabschied",
+                           "auf wiederhör", "auf wiederhoer", "tschüss", "tschuess", "aufleg"),
+    "Notfall": ("notfall", "notruf", "gefahr", "gefähr"),
+    "E-Mail": ("e-mail", "email"),
+}
+TOPIC_PATTERNS = {
+    topic: re.compile(r"(?i)\b(?:" + "|".join(re.escape(t) for t in terms) + r")")
+    for topic, terms in TOPIC_TERMS.items()
+}
+# Same reference markers as check_cross_refs; such sentences delegate, they do
+# not regulate, so they do not count as topic ownership.
+REFERENCE_SENTENCE = re.compile(r"(?i)\b(?:siehe|vgl|wechsle in|nutze|gemäß|gemäss|see)\b")
+
 BUDGETS = {
     "single": (800, 1500),
     "service": (2000, 3000),
@@ -81,6 +108,22 @@ def jaccard(a, b):
     if not sa or not sb:
         return 0.0
     return len(sa & sb) / len(sa | sb)
+
+
+def section_map(text):
+    """Return a function mapping a line number to its enclosing section name."""
+    marks = [(text[:m.start()].count("\n") + 1, m.group(1)) for m in HEADING.finditer(text)]
+
+    def section_for(lineno):
+        name = ""
+        for line, heading in marks:
+            if line <= lineno:
+                name = re.sub(r"^\d+[.)]\s*", "", heading).split("(")[0].strip()
+            else:
+                break
+        return name
+
+    return section_for
 
 
 class Report:
@@ -116,23 +159,39 @@ def check_size(text, budget, rep):
     return {"chars": chars, "words": words, "tokens": tokens}
 
 
-def check_duplicates(sents, rep):
+def check_duplicates(sents, section_for, rep):
     seen = []
     for lineno, s in sents:
         toks = norm(s)
-        if len(toks) < 5:
+        if len(toks) < 3:
             continue
-        for prev_line, prev_s, prev_toks in seen:
+        sec = section_for(lineno)
+        for prev_line, prev_s, prev_toks, prev_sec in seen:
             sim = jaccard(toks, prev_toks)
             if sim >= 0.95:
-                rep.error("duplicate", f"Zeile {lineno} wiederholt Zeile {prev_line} fast wörtlich: "
-                                       f"\"{s[:80]}\"", lineno)
+                rep.error("duplicate", f"Zeile {lineno} ({sec}) wiederholt Zeile {prev_line} ({prev_sec}) "
+                                       f"fast wörtlich: \"{s[:80]}\"", lineno)
                 break
             if sim >= 0.7:
-                rep.warn("duplicate", f"Zeile {lineno} überlappt stark mit Zeile {prev_line} "
-                                      f"({sim:.0%}): \"{s[:80]}\"", lineno)
+                rep.warn("duplicate", f"Zeile {lineno} ({sec}) überlappt stark mit Zeile {prev_line} "
+                                      f"({prev_sec}) ({sim:.0%}): \"{s[:80]}\"", lineno)
                 break
-        seen.append((lineno, s, toks))
+            # Containment catches the shorter rule fully restated inside a
+            # longer one, which jaccard underrates because of unequal lengths.
+            smaller, larger = sorted((toks, prev_toks), key=len)
+            small_set = set(smaller)
+            if small_set:
+                containment = len(small_set & set(larger)) / len(small_set)
+                if containment >= 0.8:
+                    if len(toks) <= len(prev_toks):
+                        inner, inner_sec, outer, outer_sec = lineno, sec, prev_line, prev_sec
+                    else:
+                        inner, inner_sec, outer, outer_sec = prev_line, prev_sec, lineno, sec
+                    rep.warn("duplicate", f"Teilduplikat: Zeile {inner} ({inner_sec}) ist zu "
+                                          f"{containment:.0%} in Zeile {outer} ({outer_sec}) "
+                                          f"enthalten: \"{s[:80]}\"", inner)
+                    break
+        seen.append((lineno, s, toks, sec))
 
 
 def check_sections(text, rep):
@@ -169,7 +228,7 @@ def check_cross_refs(text, sections, rep):
                                  "löst auf keine Sektion auf", line)
 
 
-def check_standard_overlap(text, standard, rep):
+def check_standard_overlap(text, standard, section_for, rep):
     if not standard:
         rep.info("standard", "Kein Standard-Prompt übergeben, Dublettenprüfung gegen den Standard "
                              "übersprungen. Mit --standard nachholen.")
@@ -177,18 +236,49 @@ def check_standard_overlap(text, standard, rep):
     std_sents = [norm(s) for _, s in sentences(standard)]
     for lineno, s in sentences(text):
         toks = norm(s)
-        if len(toks) < 6:
+        if len(toks) < 3:
             continue
         for st in std_sents:
             if jaccard(toks, st) >= 0.6:
-                rep.error("standard", f"Zeile {lineno} dupliziert eine Standard-Regel: "
-                                      f"\"{s[:90]}\". Entfernen oder als Override deklarieren.", lineno)
+                rep.error("standard", f"Zeile {lineno} ({section_for(lineno)}) dupliziert eine "
+                                      f"Standard-Regel: \"{s[:90]}\". Entfernen oder als "
+                                      f"Override deklarieren.", lineno)
                 break
     low = text.lower()
     for term in STANDARD_TERMS:
         if term in low and term in standard.lower():
             rep.info("standard", f"Begriff \"{term}\" kommt in Custom-Block und Standard vor. "
                                  "Prüfen, ob Override oder Dublette.")
+
+
+def check_topics(text, section_for, rep):
+    """One topic, one section: a topic regulated in two or more sections is a
+    WARN, sentences that merely reference another section do not count."""
+    by_section = defaultdict(list)
+    for lineno, s in sentences(text):
+        by_section[section_for(lineno)].append((lineno, s))
+    owners = defaultdict(list)  # topic -> [(section, [lines])]
+    for topic, pattern in TOPIC_PATTERNS.items():
+        for sec, sents in by_section.items():
+            lines = [lineno for lineno, s in sents
+                     if pattern.search(s) and not REFERENCE_SENTENCE.search(s)]
+            if len(lines) >= 2:
+                owners[topic].append((sec, lines))
+    for topic, secs in sorted(owners.items()):
+        if len(secs) >= 2:
+            detail = "; ".join(f"\"{sec}\" (Zeilen {', '.join(map(str, lines))})"
+                               for sec, lines in secs)
+            rep.warn("topics", f"Thema \"{topic}\" wird in mehreren Sektionen geregelt: {detail}. "
+                               "Eine Sektion besitzt das Thema, die anderen verweisen darauf "
+                               "(siehe ...).")
+    single = "; ".join(f"{t} → \"{secs[0][0]}\""
+                       for t, secs in sorted(owners.items()) if len(secs) == 1)
+    if single:
+        rep.info("topics", f"Themenkarte: {single}")
+    if not owners:
+        rep.info("topics", "Keines der bekannten Themen erkannt. Themenliste im Skript "
+                           "erweitern, wenn der Agent weitere Themen regelt.")
+    return owners
 
 
 def check_tools(text, rep):
@@ -317,12 +407,14 @@ def main():
         budget = (t, int(t * 1.4))
 
     rep = Report()
+    section_for = section_map(text)
     size = check_size(text, budget, rep)
     sents = sentences(text)
-    check_duplicates(sents, rep)
+    check_duplicates(sents, section_for, rep)
     sections = check_sections(text, rep)
     check_cross_refs(text, sections, rep)
-    check_standard_overlap(text, standard, rep)
+    check_standard_overlap(text, standard, section_for, rep)
+    check_topics(text, section_for, rep)
     check_tools(text, rep)
     check_search_discipline(sents, rep)
     check_formatting(text, rep)
