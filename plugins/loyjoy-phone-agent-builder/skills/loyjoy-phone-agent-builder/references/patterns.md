@@ -295,6 +295,10 @@ Each of these reliably hurts quality. The fix is in the named section.
 26. **Chat patterns in a voice prompt**: markdown, emoji, long enumerations. The model reads brackets and stars out loud → Mandatory voice-output rules.
 27. **Vague tone descriptors only ("sei hilfsbereit")**: add concrete tone keywords plus a verbose anti-example → Persona, Abschnitt 3 der Struktur oben.
 28. **Prompt written before the model was fixed** → Modell festlegen.
+29. **Negative rule without an alternative**: the prohibition says what not to do, not what to do instead → Entfernen vor Verbieten.
+30. **Rule without a concrete action verb**: describes instead of instructing; the agent does not follow descriptions → Wartbare Prompt-Struktur.
+31. **Vague quantifiers** ("generally", "normally", "meistens"): the real condition is unknown and left to the model → Rückfragen vor Plan.
+32. **Platform jargon in the prompt** ("tenant", "Mandant", "staging"): opaque to the model, means nothing to the caller → Wartbare Prompt-Struktur.
 
 ## Appendix: template skeleton for a fresh custom block
 

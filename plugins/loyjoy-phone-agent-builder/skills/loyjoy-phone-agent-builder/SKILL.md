@@ -41,6 +41,8 @@ Ask first when any of the following is true:
 - The source material is a raw workshop protocol, a feedback spreadsheet, or a transcript, i.e. unstructured input with implicit priorities.
 - Two plausible interpretations would lead to materially different prompts.
 - The change touches a live production agent and the desired blast radius is unclear.
+- A rule you are about to write would need a vague quantifier ("generally", "normally") because the real condition is unknown.
+- The alternative behavior to a required negative rule is unknown.
 
 Go straight to work when:
 - The request is a narrow, well-specified single change ("Anrede auf Sie umstellen", "Notfall-Nummer korrigieren").
@@ -235,6 +237,10 @@ A phone-agent prompt is a long-lived artifact changed by several people over mon
 8. **One term, one meaning.** Reserve a phrase for exactly one actor and one action. Before adding a rule, search the prompt for the terms you are about to use. A phrase that means one thing for the caller and another for the agent will collapse into a loop.
 9. **Length discipline.** See Prompt-Budget und Redundanzprüfung. Before adding, check whether an existing section can absorb the change.
 10. **No dead weight.** Rules for dropped use cases, removed tools, or scenarios that never occurred get deleted, not commented out.
+11. **Formulate actively.** Where an active form exists, the prompt uses it; passive voice and negation are the exception, not the default. Legitimate negative rules follow Entfernen vor Verbieten.
+12. **Every rule contains a concrete action.** A rule without a concrete verb for what is said or done is a description, and the agent does not follow descriptions reliably.
+13. **No vague quantifiers.** "generally", "normally", "meistens", "in der Regel" move the decision into the model. Name the condition; if it is unknown, ask for it (Rückfragen vor Plan) instead of writing vaguely.
+14. **No terms opaque to the model.** Platform vocabulary ("tenant", "Mandant", "staging") tells the call agent nothing; the prompt states what they mean for the caller (e.g. the customer name instead of "[tenant]").
 
 ## Prompt-Budget und Redundanzprüfung
 
@@ -289,7 +295,7 @@ Over budget the prompt still works, but every further change gets more expensive
 
 ### Self-critique pass
 
-The checker does not read for meaning. After it comes back clean, re-read the block once against five questions and fix what you find: which instructions are ambiguous, which terms are undefined, which pairs conflict, which assumptions are unstated, and which topic is regulated in more than one section (the checker's topics map names the candidates). Apply fixes surgically; a rewrite at this stage loses the review history.
+The checker does not read for meaning. After it comes back clean, re-read the block once against six questions and fix what you find: which instructions are ambiguous, which terms are undefined, which pairs conflict, which assumptions are unstated, which topic is regulated in more than one section (the checker's topics map names the candidates), and which negative rule names no alternative behavior. Apply fixes surgically; a rewrite at this stage loses the review history.
 
 ### Report
 
@@ -330,6 +336,8 @@ Negative rules are legitimate, and belong in the prompt explicitly, for:
 - scope boundaries against caller-initiated topics the prompt never mentions (competitors, off-topic chat),
 - overriding standard-prompt behavior that cannot be edited per tenant,
 - suppressing a model tendency with no source in the prompt at all (invented tool names, invented URLs, defaulting to the free tier).
+
+A negative rule always names the alternative behavior. If the alternative is unknown, ask the user what the agent should do instead before writing the rule.
 
 Judgment rule: if you can point to the sentence that causes the behavior, remove that sentence. If you cannot, a negative rule is justified. State which of the two you did and why, so the user can disagree.
 
