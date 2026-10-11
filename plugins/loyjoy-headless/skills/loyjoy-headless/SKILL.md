@@ -19,14 +19,16 @@ The LoyJoy Manager MCP server (`/mcp`) derives its tools from the REST API of th
 3. **Every successful response is `{ "data": ..., "tenant_id": ... }`.** Read the payload from `data`.
 4. **A failed call reports `HTTP <status> for <method> <path> in tenant <id>: <body>`.** Validation errors are problem+json and end with `issues=[...]`; every issue carries `element_id`, `attribute`, `severity`, `message`, and `hint`. Report them to the user in plain words and fix the cause; do not route around a rejection.
 
-The tool list is not filtered by role. Access is enforced by each operation: an `HTTP 403` means the login lacks the role for that operation (`OWNER`, `EDITOR`, `PROCESSES_EDITOR`, `PROCESSES_VIEWER`, `ANALYTICS_VIEWER`, `REVISION`, ...). Do not work around it with a broader tool; report it and ask the user to check the role of the login, so they can decide whether to grant the role or run the task with a different account.
+The server exposes an **allowlist**: only the operations this skill needs (processes, process elements, process XML and schema, i18n, model check, version diff, publish, templates, search, home views, process analytics, single-message evaluation) plus `list_tenants`. Tenant administration, users and roles, API tokens, billing, bulk deletions, deleting whole processes, secrets, live messages, and end-customer exports are deliberately not available. If a request needs one of them, do not look for a workaround; tell the user to do it in the Manager UI.
+
+Via MCP, an `OWNER` acts as `EDITOR`: the server passes `OWNER` on as `EDITOR`, and `list_tenants` shows the reduced roles. Every tool of this skill works with `EDITOR`. Access is enforced by each operation: an `HTTP 403` means the login lacks the role for that operation (`EDITOR`, `PROCESSES_EDITOR`, `PROCESSES_VIEWER`, `ANALYTICS_VIEWER`, `REVISION`, ...). Do not work around it with a broader tool; report it and ask the user to check the role of the login, so they can decide whether to grant the role or run the task with a different account.
 
 
 ## Confirm the tenant first
 
 Every later call operates against the tenant you pass as `tenant_id`. A wrong tenant means inspecting, editing, or publishing the wrong customer's configuration, so confirm the tenant before doing anything else. Run this gate once at the start of a task.
 
-1. Call `list_tenants`. It returns `tenant_id`, `name`, and a `description` with the user's roles for every reachable tenant.
+1. Call `list_tenants`. It returns `tenant_id`, `name`, and a `description` with the user's roles as effective via MCP (`OWNER` shown as `EDITOR`) for every reachable tenant.
 2. If exactly one tenant is returned, show its name and roles. If several are returned, show them and let the user choose. Use a clickable button for the confirmation or the choice.
 3. Proceed only after explicit confirmation. If the user does not confirm, stop and ask them to fix the login before continuing.
 4. Keep the confirmed `tenant_id` for the whole task and pass it on every call. Never switch to another `tenant_id` mid-task without a new confirmation.
