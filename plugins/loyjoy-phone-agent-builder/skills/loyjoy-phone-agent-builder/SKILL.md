@@ -95,28 +95,30 @@ A tenant may contain a prototype or demo copy while the productive agent lives i
 
 ### Toolchain in Connected mode
 
-Before the first connected write, load the `loyjoy-headless` skill (this plugin's dependency) and follow its rules for tenant selection, targeted reads, staging writes, round-trip validation, model checking, diff review, and publishing. This skill adds the phone-specific decisions; it does not replace the headless safety workflow.
+Before the first connected write, load the `loyjoy-headless` skill (this plugin's dependency) and follow its rules for tenant selection, targeted reads, staging writes, write verification, model checking, diff review, and publishing. This skill adds the phone-specific decisions; it does not replace the headless safety workflow.
 
-1. `tenant_meta` and `processes_list` — confirm the tenant and resolve an existing agent by name. Never guess IDs.
-2. `process_get_xml_grep` — read the smallest relevant XML fragments: the custom instruction, the configured tools, and the model configuration. Use `process_get_xml` only when the whole structure is genuinely needed.
-3. `process_create`, `process_set_attribute`, `process_add_extension_element` — create or edit the staging process. Update an instruction with `process_set_attribute(..., name="text", value="...")`. Create a missing one with `process_add_extension_element(element_type="instruction", initial_attrs={"type":"custom","text":"..."})`.
-4. `process_staging_xml_roundtrip_diff` — run after every write. Continue only when the result is identical.
-5. `process_model_check` — BPMN correctness; inspect `LOCALE_NOT_MAINTAINED` issues for language gaps before delivery or publishing.
-6. `process_diff` — review the complete production-to-staging change.
-7. `process_publish` — only after the user explicitly requests or approves publication.
+Every tool takes the confirmed `tenant_id`; request bodies go into the argument `body`.
+
+1. `list_tenants` and `bpmn_processes_get` — confirm the tenant and resolve an existing agent by name. Never guess IDs.
+2. `bpmn_process_xml_get` with `grep` and `bpmn_process_element_get` — read the smallest relevant XML fragments: the custom instruction, the configured tools, and the model configuration. Use `bpmn_process_xml_get` without `grep` only when the whole structure is genuinely needed.
+3. `bpmn_process_create_post`, `bpmn_process_element_attributes_patch`, `bpmn_process_elements_post` — create or edit the staging process. Update an instruction with `bpmn_process_element_attributes_patch(..., body={"name":"text","value":"..."})`. Create a missing one with `bpmn_process_elements_post(body={"parent_id":..., "element_type":"instruction", "initial_attrs":{"type":"custom","text":"..."}})`.
+4. Verification — preview every write with `dry_run=true` and check its `diff` for the exact attribute names; after writes without `dry_run` support (`flow_element_add_post`, `i18n_by_key_put`) read the element with `bpmn_process_element_get`. The XML round trip does not catch invented attribute names.
+5. `issues_summary_by_bpmn_process_get` — BPMN correctness; inspect `LOCALE_NOT_MAINTAINED` issues for language gaps before delivery or publishing.
+6. `bpmn_processes_versions_diff_get` — review the complete production-to-staging change.
+7. `bpmn_process_publish_post` — only after the user explicitly requests or approves publication.
 
 ### Rules for write access
 
 - Never write without having read the current state in the same session.
 - Never write a block the user has not seen and approved.
-- Run `process_staging_xml_roundtrip_diff` after every write and `process_diff` after the complete change.
+- Verify every write (dry-run diff, or `bpmn_process_element_get` after writes without dry run) and run `bpmn_processes_versions_diff_get` after the complete change.
 - One logical change per write. Five requested items can be one write, but do not bundle unrelated cleanup into it silently. Name what you changed.
-- Work in staging. Touch production only through `process_publish`, and only with explicit approval.
+- Work in staging. Touch production only through `bpmn_process_publish_post`, and only with explicit approval.
 
 ### Hard limits of Connected mode
 
 - MCP can create, configure, validate, diff, and publish a process. It cannot create or upload assets, assign a phone number, configure external telephony routing, or perform a real voice call. Existing assets may only be referenced after their exact IDs and suitability have been verified.
-- **Do not use `chat_completions_eval` for phone agents.** It is a text chat path and does not represent the voice channel.
+- **Do not use `completion_eval_message_post` for phone agents.** It is a text chat path and does not represent the voice channel.
 - **Real test calls are currently not available from this workflow.** Nothing in the toolchain can place or evaluate a call. This does not lower the bar, it moves the work forward: run the anticipation pass (see Antizipation statt Testanruf) and report the voice test as open.
 
 ### What "complete phone agent" means
@@ -141,7 +143,7 @@ MCP can reach levels 1 and 2. It cannot prove level 3, and no test call can be p
 8. Draft using the section structure and patterns in `references/patterns.md`. When iterating, always return the full updated custom block, not just the diff.
 9. Run `scripts/prompt_check.py` (Prompt-Budget und Redundanzprüfung), then check the block against `references/openai-guide.md`.
 10. Run the anticipation pass over the scenario matrix (see Antizipation statt Testanruf) and deliver its result with the prompt.
-11. Connected: round-trip check after every write; before delivery run model checking, review locale issues, inspect the production-to-staging diff.
+11. Connected: verify every write (dry-run diff or element read); before delivery run model checking, review locale issues, inspect the production-to-staging diff.
 12. Work through the delivery checklist in `references/debugging-and-delivery.md`.
 13. Report the three completeness levels separately. Publish only on explicit approval. Leave the real voice test visible as an open requirement until it has happened.
 
@@ -153,21 +155,21 @@ Do not create an empty process while essential requirements are unknown. Work th
 
 Then follow "Create a phone agent" in the `loyjoy-headless` skill's `references/examples.md`. Its tool arguments and validation sequence are authoritative. The phone-specific gates:
 
-1. `process_create`, then `process_staging_xml_roundtrip_diff`.
-2. Set `name="loyjoy:type"` to `value="phone_agent"` on `element_id=process_id`, round-trip again.
-3. Add exactly one `process_add_subprocess(process_id, parent_id=process_id, subprocess_type="AI_AGENT_SUBPROCESS")`, retain its ID, round-trip again.
-4. Under that subprocess, add one custom `instruction` extension element with `type=custom` and the complete approved text. Round-trip.
+1. `bpmn_process_create_post`, then `bpmn_process_element_get` on the new process.
+2. Set `name="loyjoy:type"` to `value="phone_agent"` on `element_id=process_id` with `bpmn_process_element_attributes_patch`; check the dry-run diff.
+3. Add exactly one `flow_element_add_post(bpmn_process_id=process_id, body={"tag":"subProcess","type":"AI_AGENT_SUBPROCESS","parent_id":process_id,"index":0})`, retain its ID, read it back with `bpmn_process_element_get`.
+4. Under that subprocess, add one custom `instruction` extension element with `type=custom` and the complete approved text; check the dry-run diff.
 5. Configure only tools required by the approved use cases. Use exact element types and attributes discovered through the schema and existing structure; never invent a tool name.
-6. Add all customer-visible texts for every configured process locale. Run `process_model_check` and resolve every `LOCALE_NOT_MAINTAINED` issue introduced by the task.
-7. `process_model_check`, resolve blocking findings, review `process_diff`.
+6. Add all customer-visible texts for every configured process locale. Run `issues_summary_by_bpmn_process_get` and resolve every `LOCALE_NOT_MAINTAINED` issue introduced by the task.
+7. `issues_summary_by_bpmn_process_get`, resolve blocking findings, review `bpmn_processes_versions_diff_get`.
 8. Report what is complete and what remains for telephony readiness. Publish only after explicit approval.
 
 ### Editing an existing custom instruction in Connected mode
 
-1. Locate the instruction with `process_get_xml_grep` and read its full current text.
+1. Locate the instruction with `bpmn_process_xml_get` (`grep`) and read its full current text and `revision` with `bpmn_process_element_get`.
 2. Apply the methodology in this skill and obtain approval for the complete replacement text.
-3. Write with `process_set_attribute(process_id, element_id, name="text", value="...")`.
-4. Run `process_staging_xml_roundtrip_diff`, `process_model_check`, `process_diff`; inspect locale warnings as well as blocking findings.
+3. Write with `bpmn_process_element_attributes_patch(process_id, element_id, body={"name":"text","value":"..."})`: first with `dry_run=true`, then with `expected_revision`.
+4. Check the dry-run diff, then run `issues_summary_by_bpmn_process_get` and `bpmn_processes_versions_diff_get`; inspect locale warnings as well as blocking findings.
 
 ## Clarification checklist
 
@@ -269,7 +271,7 @@ python3 scripts/prompt_check.py custom_block.txt \
     --budget single|service|complex
 ```
 
-Write the current custom block and the extracted standard prompt to files first (in Connected mode, take the block from `process_get_xml_grep`, the standard from the monorepo). The checker reports:
+Write the current custom block and the extracted standard prompt to files first (in Connected mode, take the block from `bpmn_process_element_get` or `bpmn_process_xml_get` with `grep`, the standard from the monorepo). The checker reports:
 
 | Check | What it catches |
 | --- | --- |
@@ -363,7 +365,7 @@ These are the mistakes made while fixing other mistakes. They cost more test cal
 
 ## Tool-Inventar abgleichen
 
-Prompt and tool configuration must match. In Connected mode, inspect the configured tool elements with `process_get_xml_grep`. Reconcile on every job.
+Prompt and tool configuration must match. In Connected mode, inspect the configured tool elements with `bpmn_process_xml_get` (`grep`) or `bpmn_process_element_get`. Reconcile on every job.
 
 1. Derive the required tool set from the use cases (knowledge search, email, transfer, hangup, booking, custom integrations).
 2. Compare against what is actually configured.
