@@ -95,14 +95,14 @@ A tenant may contain a prototype or demo copy while the productive agent lives i
 
 ### Toolchain in Connected mode
 
-Before the first connected write, load the `loyjoy-headless` skill (this plugin's dependency) and follow its rules for tenant selection, targeted reads, staging writes, round-trip validation, model checking, diff review, and publishing. This skill adds the phone-specific decisions; it does not replace the headless safety workflow.
+Before the first connected write, load the `loyjoy-headless` skill (this plugin's dependency) and follow its rules for tenant selection, targeted reads, staging writes, write verification, model checking, diff review, and publishing. This skill adds the phone-specific decisions; it does not replace the headless safety workflow.
 
 Every tool takes the confirmed `tenant_id`; request bodies go into the argument `body`.
 
 1. `list_tenants` and `bpmn_processes_get` — confirm the tenant and resolve an existing agent by name. Never guess IDs.
 2. `bpmn_process_xml_get` with `grep` and `bpmn_process_element_get` — read the smallest relevant XML fragments: the custom instruction, the configured tools, and the model configuration. Use `bpmn_process_xml_get` without `grep` only when the whole structure is genuinely needed.
 3. `bpmn_process_create_post`, `bpmn_process_element_attributes_patch`, `bpmn_process_elements_post` — create or edit the staging process. Update an instruction with `bpmn_process_element_attributes_patch(..., body={"name":"text","value":"..."})`. Create a missing one with `bpmn_process_elements_post(body={"parent_id":..., "element_type":"instruction", "initial_attrs":{"type":"custom","text":"..."}})`.
-4. Round trip — preview every write with `dry_run=true` and require `roundtrip.is_identical=true`; after writes without `dry_run` support run `bpmn_process_xml_roundtrip_diff_get`. Continue only when the result is identical.
+4. Verification — preview every write with `dry_run=true` and check its `diff` for the exact attribute names; after writes without `dry_run` support (`flow_element_add_post`, `i18n_by_key_put`) read the element with `bpmn_process_element_get`. The XML round trip does not catch invented attribute names.
 5. `issues_summary_by_bpmn_process_get` — BPMN correctness; inspect `LOCALE_NOT_MAINTAINED` issues for language gaps before delivery or publishing.
 6. `bpmn_processes_versions_diff_get` — review the complete production-to-staging change.
 7. `bpmn_process_publish_post` — only after the user explicitly requests or approves publication.
@@ -111,7 +111,7 @@ Every tool takes the confirmed `tenant_id`; request bodies go into the argument 
 
 - Never write without having read the current state in the same session.
 - Never write a block the user has not seen and approved.
-- Check the round trip of every write (dry run or `bpmn_process_xml_roundtrip_diff_get`) and run `bpmn_processes_versions_diff_get` after the complete change.
+- Verify every write (dry-run diff, or `bpmn_process_element_get` after writes without dry run) and run `bpmn_processes_versions_diff_get` after the complete change.
 - One logical change per write. Five requested items can be one write, but do not bundle unrelated cleanup into it silently. Name what you changed.
 - Work in staging. Touch production only through `bpmn_process_publish_post`, and only with explicit approval.
 
@@ -143,7 +143,7 @@ MCP can reach levels 1 and 2. It cannot prove level 3, and no test call can be p
 8. Draft using the section structure and patterns in `references/patterns.md`. When iterating, always return the full updated custom block, not just the diff.
 9. Run `scripts/prompt_check.py` (Prompt-Budget und Redundanzprüfung), then check the block against `references/openai-guide.md`.
 10. Run the anticipation pass over the scenario matrix (see Antizipation statt Testanruf) and deliver its result with the prompt.
-11. Connected: round-trip check after every write; before delivery run model checking, review locale issues, inspect the production-to-staging diff.
+11. Connected: verify every write (dry-run diff or element read); before delivery run model checking, review locale issues, inspect the production-to-staging diff.
 12. Work through the delivery checklist in `references/debugging-and-delivery.md`.
 13. Report the three completeness levels separately. Publish only on explicit approval. Leave the real voice test visible as an open requirement until it has happened.
 
@@ -155,10 +155,10 @@ Do not create an empty process while essential requirements are unknown. Work th
 
 Then follow "Create a phone agent" in the `loyjoy-headless` skill's `references/examples.md`. Its tool arguments and validation sequence are authoritative. The phone-specific gates:
 
-1. `bpmn_process_create_post`, then `bpmn_process_xml_roundtrip_diff_get`.
-2. Set `name="loyjoy:type"` to `value="phone_agent"` on `element_id=process_id` with `bpmn_process_element_attributes_patch`, round-trip again.
-3. Add exactly one `flow_element_add_post(bpmn_process_id=process_id, body={"tag":"subProcess","type":"AI_AGENT_SUBPROCESS","parent_id":process_id,"index":0})`, retain its ID, round-trip again.
-4. Under that subprocess, add one custom `instruction` extension element with `type=custom` and the complete approved text. Round-trip.
+1. `bpmn_process_create_post`, then `bpmn_process_element_get` on the new process.
+2. Set `name="loyjoy:type"` to `value="phone_agent"` on `element_id=process_id` with `bpmn_process_element_attributes_patch`; check the dry-run diff.
+3. Add exactly one `flow_element_add_post(bpmn_process_id=process_id, body={"tag":"subProcess","type":"AI_AGENT_SUBPROCESS","parent_id":process_id,"index":0})`, retain its ID, read it back with `bpmn_process_element_get`.
+4. Under that subprocess, add one custom `instruction` extension element with `type=custom` and the complete approved text; check the dry-run diff.
 5. Configure only tools required by the approved use cases. Use exact element types and attributes discovered through the schema and existing structure; never invent a tool name.
 6. Add all customer-visible texts for every configured process locale. Run `issues_summary_by_bpmn_process_get` and resolve every `LOCALE_NOT_MAINTAINED` issue introduced by the task.
 7. `issues_summary_by_bpmn_process_get`, resolve blocking findings, review `bpmn_processes_versions_diff_get`.
@@ -169,7 +169,7 @@ Then follow "Create a phone agent" in the `loyjoy-headless` skill's `references/
 1. Locate the instruction with `bpmn_process_xml_get` (`grep`) and read its full current text and `revision` with `bpmn_process_element_get`.
 2. Apply the methodology in this skill and obtain approval for the complete replacement text.
 3. Write with `bpmn_process_element_attributes_patch(process_id, element_id, body={"name":"text","value":"..."})`: first with `dry_run=true`, then with `expected_revision`.
-4. Check the dry-run round trip, then run `issues_summary_by_bpmn_process_get` and `bpmn_processes_versions_diff_get`; inspect locale warnings as well as blocking findings.
+4. Check the dry-run diff, then run `issues_summary_by_bpmn_process_get` and `bpmn_processes_versions_diff_get`; inspect locale warnings as well as blocking findings.
 
 ## Clarification checklist
 

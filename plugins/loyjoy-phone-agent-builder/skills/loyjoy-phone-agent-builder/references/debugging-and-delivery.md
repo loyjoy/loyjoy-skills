@@ -158,5 +158,5 @@ Pack the prompt as a `.txt` attachment to avoid mail-client formatting breakage.
 25. If test mode is active: does the test-mode section list every place that must change to switch it off?
 26. Did `scripts/prompt_check.py` run, are all ERROR findings fixed, is every accepted warning justified in the delivery, and was the self-critique pass done?
 27. Was the anticipation pass run over the full scenario matrix, are all defects fixed, and are the remaining risks listed as predictions rather than results?
-28. Connected mode: XML round-trip identical after every write, blocking and `LOCALE_NOT_MAINTAINED` findings reviewed, `bpmn_processes_versions_diff_get` reviewed, and publication status, telephony setup, and the real voice test reported separately?
+28. Connected mode: every write verified (dry-run diff or element read), blocking and `LOCALE_NOT_MAINTAINED` findings reviewed, `bpmn_processes_versions_diff_get` reviewed, and publication status, telephony setup, and the real voice test reported separately?
 
