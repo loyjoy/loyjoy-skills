@@ -10,7 +10,7 @@ All calls carry the `tenant_id` confirmed with `list_tenants` at the start of th
 User request: "Make the support agent answer more concisely."
 
 1. `bpmn_processes_get` to resolve the agent to a process id.
-2. `bpmn_process_xml_get(id=process_id, grep="loyjoy:instruction", context=3)` to find the instruction elements and their ids. Do not download the full XML for this.
+2. `bpmn_process_xml_grep_get(id=process_id, grep="loyjoy:instruction", context=3)` to find the instruction elements and their ids. Do not download the full XML for this.
 3. `bpmn_process_element_get(process_id, element_id=instruction_id, depth=0)` to read the current `text` and `type` (`custom`, `basis`, `context`, `answer_language`, ...) and the `revision`. Ask the user if several plausible candidates come back.
 4. `bpmn_process_element_attributes_patch(process_id, element_id=instruction_id, dry_run=true, body={"name":"text","value":"..."})`. Instruction attributes are unqualified, so use `text`, not `loyjoy:text`. Check that `data.diff` changes exactly the `text` attribute of this instruction.
 5. The same call without `dry_run` and with `expected_revision=<revision>`.
@@ -24,8 +24,8 @@ The instruction body is the whole payload here, so one write does the entire job
 
 User request: "Set the chat widget width to 480."
 
-1. `bpmn_process_xml_get(id=process_id, grep="(?i)widgetChatWidth", context=2)`. A hit gives you both the exact attribute name with its prefix and the `id` of the element carrying it.
-2. If the process does not carry the attribute yet, `bpmn_process_xml_schema_get(grep="(?i)widgetChatWidth", context=3)`. The `form="qualified"` marker tells you to pass it as `loyjoy:widgetChatWidth`; the declared type tells you how to format the value.
+1. `bpmn_process_xml_grep_get(id=process_id, grep="(?i)widgetChatWidth", context=2)`. A hit gives you both the exact attribute name with its prefix and the `id` of the element carrying it.
+2. If the process does not carry the attribute yet, `bpmn_process_xml_schema_grep_get(grep="(?i)widgetChatWidth", context=3)`. The `form="qualified"` marker tells you to pass it as `loyjoy:widgetChatWidth`; the declared type tells you how to format the value.
 3. `bpmn_process_element_get(process_id, element_id, depth=0)` for the `revision`.
 4. `bpmn_process_element_attributes_patch(process_id, element_id, dry_run=true, body={"name":"loyjoy:widgetChatWidth","value":"480"})`, check that `data.diff` shows exactly `loyjoy:widgetChatWidth="480"`, then the same call without `dry_run` and with `expected_revision`.
 5. `issues_summary_by_bpmn_process_get(id=process_id)` after this completed change. Inspect any `LOCALE_NOT_MAINTAINED` issues even though this was a scalar change.
@@ -36,7 +36,7 @@ User request: "Set the chat widget width to 480."
 
 User request: "Remove the English subtitle but keep the other languages."
 
-1. `bpmn_process_xml_get(id=process_id, grep="loyjoy:locales|<the-i18n-key>", context=2)` to confirm that `en` is configured and to read the exact i18n `key`.
+1. `bpmn_process_xml_grep_get(id=process_id, grep="loyjoy:locales|<the-i18n-key>", context=2)` to confirm that `en` is configured and to read the exact i18n `key`.
 2. Explain that clearing only `en` will make this i18n entry incomplete while English remains a configured process locale. If that is what the user intends, call `i18n_by_key_put(bpmn_process_id=process_id, key="<the-i18n-key>", locale="en", body={"value":{"en":""}})`. Empty and whitespace-only texts are accepted; they do not delete the i18n element or other locale values.
 3. `bpmn_process_element_get(process_id, element_id=<i18n-element-id>)` and confirm that only the `en` text is empty.
 4. `issues_summary_by_bpmn_process_get(id=process_id)` and confirm that the cleared multilingual element produces a `LOCALE_NOT_MAINTAINED` issue for the affected entity.
@@ -47,7 +47,7 @@ User request: "Remove the English subtitle but keep the other languages."
 
 User request: "Add 'gewinnspiel' to the blocked words."
 
-1. `bpmn_process_xml_get(id=process_id, grep="aiBlockWords", context=2)` to get the element id and see the current array.
+1. `bpmn_process_xml_grep_get(id=process_id, grep="aiBlockWords", context=2)` to get the element id and see the current array.
 2. `bpmn_process_element_attributes_patch(process_id, element_id, dry_run=true, body={"name":"loyjoy:aiBlockWords","add":["gewinnspiel"]})`, check in `data.diff` that only `loyjoy:aiBlockWords` changes, then the same call without `dry_run` and with `expected_revision` from `bpmn_process_element_get`.
 3. `issues_summary_by_bpmn_process_get(id=process_id)` after this completed change, including review of locale-related warnings.
 
@@ -59,9 +59,9 @@ Send the delta, not the rebuilt array. If two edits race, a delta merges and a f
 User request: "Add a live chat handover to the service agent."
 
 1. Resolve the enum value by searching backwards from the label the user used, not by paging through the enumeration. `SubProcessTypeEnum` has well over a hundred entries and the context of a grep caps at 5 lines, so scanning it is slow. Instead grep the annotation and let the context reveal the constant:
-   `bpmn_process_xml_schema_get(grep="xml:lang=\"de\">Live-Chat<", context=3)`
+   `bpmn_process_xml_schema_grep_get(grep="xml:lang=\"de\">Live-Chat<", context=3)`
    returns the enclosing `<xs:enumeration value="LIVE_SUBPROCESS">` in one call. Use `xml:lang="en"` for English labels. Confirmed mappings from this pattern: "Live-Chat" is `LIVE_SUBPROCESS`, "AI-Agent" is `AI_AGENT_SUBPROCESS`, "AI-Wissen" is `AI_KNOWLEDGE_SUBPROCESS`, "Formular" is `FORM_SUBPROCESS`. If the label is a guess, try a looser pattern such as `(?i)xml:lang="de">[^<]*kalender` before falling back to reading the enumeration. Never infer the constant from the label yourself: the naming is not mechanical.
-2. `bpmn_process_xml_get(id=process_id, grep="subProcess", context=1)` to decide where it belongs and to get the `parent_id`. Use the process id as parent for a top-level subprocess.
+2. `bpmn_process_xml_grep_get(id=process_id, grep="subProcess", context=1)` to decide where it belongs and to get the `parent_id`. Use the process id as parent for a top-level subprocess.
 3. `flow_element_add_post(bpmn_process_id=process_id, body={"tag":"subProcess","type":"LIVE_SUBPROCESS","parent_id":<parent-id>,"index":<position>})`. The server generates the element identity and enforces parent-child compatibility; `data` is the new subprocess id.
 4. `bpmn_process_element_get(process_id, element_id=<returned-subprocess-id>)` to confirm the new module, its `loyjoy:type`, and its parent.
 5. Fill in scalar configuration on the returned id with `bpmn_process_element_attributes_patch`. Add a new instruction with `bpmn_process_elements_post(process_id, body={"parent_id":<returned-subprocess-id>,"element_type":"instruction","initial_attrs":{"type":"custom","text":"..."}})`. Create localized text with `i18n_by_key_put(bpmn_process_id=process_id, key="<slot>/<returned-subprocess-id>", locale, body={"value":{"<locale>":"..."}})` for each configured locale; the server creates the i18n element under the module. Resolve every attribute, enum, and i18n key first.
@@ -76,9 +76,9 @@ This is five to eight calls where the full-XML route is one. That is the point: 
 
 User request: "Add a question for the email address to the data collection module."
 
-1. `bpmn_process_xml_schema_get(grep="ExtensionElementsType", context=5)` to confirm `dataCollectionQuestion` is a valid `element_type` under the intended parent. The key is the camelCase local name without the `loyjoy:` prefix.
-2. `bpmn_process_xml_schema_get(grep="DataCollectionQuestionTypeEnum", context=5)` for the question type, and the matching `xs:attributeGroup` for the attributes you plan to seed.
-3. `bpmn_process_xml_get(id=process_id, grep="loyjoy:locales|dataCollectionQuestion", context=3)` to read every configured locale, locate the parent element id, and see how existing questions in this process are shaped.
+1. `bpmn_process_xml_schema_grep_get(grep="ExtensionElementsType", context=5)` to confirm `dataCollectionQuestion` is a valid `element_type` under the intended parent. The key is the camelCase local name without the `loyjoy:` prefix.
+2. `bpmn_process_xml_schema_grep_get(grep="DataCollectionQuestionTypeEnum", context=5)` for the question type, and the matching `xs:attributeGroup` for the attributes you plan to seed.
+3. `bpmn_process_xml_grep_get(id=process_id, grep="loyjoy:locales|dataCollectionQuestion", context=3)` to read every configured locale, locate the parent element id, and see how existing questions in this process are shaped.
 4. `bpmn_process_elements_post(process_id, dry_run=true, body={"parent_id":<parent-id>,"element_type":"dataCollectionQuestion","initial_attrs":{...}})` with only attributes you verified in the schema. Check every attribute name in `data.diff` against the schema, then repeat without `dry_run` and with `expected_revision`. Retain the returned `element_id` of the question.
 5. Resolve the correct i18n slot/key from the schema and a working template.
 6. Call `i18n_by_key_put(bpmn_process_id=process_id, key="<slot>/<question-id>", locale, body={"value":{"<locale>":"..."}})` once for every locale configured on the process. The first call creates the i18n element under the question; `bpmn_process_elements_post` refuses `element_type="i18n"`. Read the question with `bpmn_process_element_get(depth=1)` afterwards and confirm the i18n child and its texts.
@@ -93,7 +93,7 @@ A phone agent is a process with two hard invariants: `loyjoy:type="phone_agent"`
 
 1. `bpmn_processes_post(body={"name":..., "default_locale":..., "folder":..., "type":"phone_agent"})` — returns the new process in `data`; its `id` is the `process_id`. It is the same `POST /app/bpmn_processes` endpoint the Manager UI uses: the process is stored in staging and seeded with the preview messages, but for `type="phone_agent"` no AI agent module is created, so you build that singleton invariant yourself in the next steps.
 2. `bpmn_process_element_get(process_id, element_id=process_id, depth=0)` for the `revision` and the initial attributes.
-3. Confirm `loyjoy:type="phone_agent"` is already set on the `Process` element from the create body (valid enum values: `ai_agent`, `chat_agent`, `phone_agent`; anything else silently produces a broken agent). The element read from step 2 shows it; do not patch `loyjoy:type` again. If unsure, verify with `bpmn_process_xml_schema_get(grep="phone_agent", context=3)`.
+3. Confirm `loyjoy:type="phone_agent"` is already set on the `Process` element from the create body (valid enum values: `ai_agent`, `chat_agent`, `phone_agent`; anything else silently produces a broken agent). The element read from step 2 shows it; do not patch `loyjoy:type` again. If unsure, verify with `bpmn_process_xml_schema_grep_get(grep="phone_agent", context=3)`.
 4. `flow_element_add_post(bpmn_process_id=process_id, body={"tag":"subProcess","type":"AI_AGENT_SUBPROCESS","parent_id":process_id,"index":0})`. Exactly one. Retain the returned AI agent subprocess id.
 5. `bpmn_process_element_get(process_id, element_id=<ai-agent-subprocess-id>)` to confirm the module before adding its children.
 6. Resolve `InstructionAttributesGroup` and the relevant `InstructionTypeEnum` entry from the schema. Create the custom instruction with `bpmn_process_elements_post(process_id, body={"parent_id":<ai-agent-subprocess-id>,"element_type":"instruction","initial_attrs":{"type":"custom","text":"<instruction>"}})`, previewed with `dry_run` first. Consult the loyjoy-phone-agent-builder skill for the actual prompt content.
@@ -108,7 +108,7 @@ Do not add a second `AI_AGENT_SUBPROCESS`. If one already exists (either because
 
 User request: "Move the FAQ module above the product finder."
 
-1. `bpmn_process_xml_get(id=process_id, grep="subProcess", context=1)` to get both element ids and the current order.
+1. `bpmn_process_xml_grep_get(id=process_id, grep="subProcess", context=1)` to get both element ids and the current order.
 2. `bpmn_process_element_move_post(process_id, element_id, dry_run=true, body={"position":<n>})`, omitting `new_parent_id` for a reorder within the same parent. Check `data.diff`, then repeat without `dry_run` and with `expected_revision`.
 3. `issues_summary_by_bpmn_process_get(id=process_id)` after the completed move, including review of locale-related warnings.
 
@@ -119,7 +119,7 @@ The element keeps its `id`, so every jump reference and i18n key stays valid. Re
 
 User request: "Delete the raffle module."
 
-1. Locate the element id with `bpmn_process_xml_get(grep=...)`.
+1. Locate the element id with `bpmn_process_xml_grep_get(grep=...)`.
 2. `bpmn_process_element_delete(process_id, element_id, dry_run=true)` and use `data.diff` to show the user exactly what will disappear, including the cascaded reference cleanup. Ask for confirmation before deleting. The dry run deletes nothing, not even asset files.
 3. `bpmn_process_element_delete(process_id, element_id, expected_revision=<revision>)`. The server nulls jump targets that pointed at it, drops orphan DMN entries, and deletes unreferenced assets.
 4. `issues_summary_by_bpmn_process_get(id=process_id)` after the completed removal and reference cleanup, including review of locale-related warnings.
@@ -161,7 +161,7 @@ If `bpmn_processes_get` returns multiple plausible agents, present their names a
 
 ## Rejected write
 
-If a write is rejected, read the `issues` of the error: `attribute`, `message`, and `hint` name the cause. A rejected attribute name is wrong, not the tool. Resolve it with `bpmn_process_xml_schema_get(grep=...)` and retry. Do not fall back to `bpmn_process_xml_put` to route around the rejection: the rejection is the server protecting the process, and raw XML is guarded by the same checks.
+If a write is rejected, read the `issues` of the error: `attribute`, `message`, and `hint` name the cause. A rejected attribute name is wrong, not the tool. Resolve it with `bpmn_process_xml_schema_grep_get(grep=...)` and retry. Do not fall back to `bpmn_process_xml_put` to route around the rejection: the rejection is the server protecting the process, and raw XML is guarded by the same checks.
 
 An `HTTP 409` "Staging process has changed" means somebody else wrote in between. Re-read the element, re-plan the change on the current state, and write again with the new `revision`.
 
