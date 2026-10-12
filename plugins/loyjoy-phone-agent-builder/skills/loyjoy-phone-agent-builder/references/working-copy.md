@@ -9,7 +9,7 @@ Reprinting the full custom block in the chat on every iteration wastes the conve
 ## Materialization
 
 - Session-local directory, scratch only: `<session-workdir>/.loyjoy-work/<tenant>-<agent>/`. Never committed, never published, never shipped as-is.
-- `custom.txt` — the current custom block. Connected mode: from `process_get_xml_grep`. Advisory mode: from the user-provided text.
+- `custom.txt` — the current custom block. Connected mode: from `bpmn_process_xml_grep_get`. Advisory mode: from the user-provided text.
 - `standard.txt` — the extracted LoyJoy standard voice prompt, as the checker reference (see Den Standard-Prompt lesen in `SKILL.md`).
 - Materialize both before the first draft or edit (Order of operations in `SKILL.md`).
 
@@ -26,7 +26,7 @@ Reprinting the full custom block in the chat on every iteration wastes the conve
 After approval, by size of the change:
 
 - **Small change** (one line, one wording): state the changed line and a one-clause confirmation. No file handover.
-- **Large or structural change**: hand over the complete final file (e.g. as `custom_final.txt`), or, in Connected mode, write directly from the file content with `process_set_attribute(process_id, element_id, name="text", value=<complete content of custom.txt>)`, then round-trip check, `process_model_check`, `process_diff`.
+- **Large or structural change**: hand over the complete final file (e.g. as `custom_final.txt`), or, in Connected mode, write directly from the file content with `bpmn_process_element_attributes_patch(process_id, element_id, body={"name":"text","value":<complete content of custom.txt>})`; preview with `dry_run=true`, then write with `expected_revision`, and verify with `issues_summary_by_bpmn_process_get` and `bpmn_processes_versions_diff_get`.
 
 Every write, to the platform or to the customer, uses the complete file content. Never write a subset of the file.
 

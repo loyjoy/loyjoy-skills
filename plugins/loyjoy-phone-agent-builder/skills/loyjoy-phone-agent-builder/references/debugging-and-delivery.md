@@ -6,7 +6,7 @@ Reference for `loyjoy-phone-agent-builder`. Read when diagnosing test-call probl
 
 When test calls show problems, diagnose in this order before changing anything.
 
-1. **Reproduce.** Get the recording and the transcript. Note where the failure happens (greeting, first user turn, mid-call, end). In Connected mode read the actual live prompt via `process_get_xml_grep` first. A surprising number of reported bugs are a prompt state nobody expected to be live.
+1. **Reproduce.** Get the recording and the transcript. Note where the failure happens (greeting, first user turn, mid-call, end). In Connected mode read the actual live prompt via `bpmn_process_element_get` (with `version=prod` for the live state) first. A surprising number of reported bugs are a prompt state nobody expected to be live.
 2. **Classify the layer** using the table below. Most reported "prompt bugs" are not prompt bugs.
 3. **Fix at the right layer.** Never patch retrieval, VAD, or telephony with prompt language.
 4. **Find the cause before adding a rule** (Entfernen vor Verbieten).
@@ -83,7 +83,7 @@ Lead with the highest-severity finding even when the customer did not report it.
 - Title, date, and the realtime model the prompt is written for.
 - Two to four sentences on the source of the changes (workshop, feedback, log analysis).
 - Overview table: feedback item → proposed prompt action → type (removal / narrowing / new rule / tool config).
-- Full updated prompt with new or changed sentences highlighted in yellow (color code 10), removed text struck through in red. In Connected mode derive this from `process_diff`, not by hand.
+- Full updated prompt with new or changed sentences highlighted in yellow (color code 10), removed text struck through in red. In Connected mode derive this from `bpmn_processes_versions_diff_get`, not by hand.
 - Appendix listing items NOT addressed in the prompt (engineering and tool-configuration scope).
 - Measured prompt size before and after.
 - The anticipation matrix as the test script, with the open risks ordered by severity.
@@ -156,5 +156,5 @@ Pack the prompt as a `.txt` attachment to avoid mail-client formatting breakage.
 25. If test mode is active: does the test-mode section list every place that must change to switch it off?
 26. Did `scripts/prompt_check.py` run, are all ERROR findings fixed, is every accepted warning justified in the delivery, and was the self-critique pass done?
 27. Was the anticipation pass run over the full scenario matrix, are all defects fixed, and are the remaining risks listed as predictions rather than results?
-28. Connected mode: XML round-trip identical after every write, blocking and `LOCALE_NOT_MAINTAINED` findings reviewed, `process_diff` reviewed, and publication status, telephony setup, and the real voice test reported separately?
+28. Connected mode: every write verified (dry-run diff or element read), blocking and `LOCALE_NOT_MAINTAINED` findings reviewed, `bpmn_processes_versions_diff_get` reviewed, and publication status, telephony setup, and the real voice test reported separately?
 
