@@ -100,7 +100,7 @@ Before the first connected write, load the `loyjoy-headless` skill (this plugin'
 Every tool takes the confirmed `tenant_id`; request bodies go into the argument `body`.
 
 1. `list_tenants` and `bpmn_processes_get` — confirm the tenant and resolve an existing agent by name. Never guess IDs.
-2. `bpmn_process_xml_get` with `grep` and `bpmn_process_element_get` — read the smallest relevant XML fragments: the custom instruction, the configured tools, and the model configuration. Use `bpmn_process_xml_get` without `grep` only when the whole structure is genuinely needed.
+2. `bpmn_process_xml_grep_get` and `bpmn_process_element_get` — read the smallest relevant XML fragments: the custom instruction, the configured tools, and the model configuration. Use `bpmn_process_xml_get` (full XML) only when the whole structure is genuinely needed.
 3. `bpmn_processes_post`, `bpmn_process_element_attributes_patch`, `bpmn_process_elements_post` — create or edit the staging process. Update an instruction with `bpmn_process_element_attributes_patch(..., body={"name":"text","value":"..."})`. Create a missing one with `bpmn_process_elements_post(body={"parent_id":..., "element_type":"instruction", "initial_attrs":{"type":"custom","text":"..."}})`.
 4. Verification — preview every write with `dry_run=true` and check its `diff` for the exact attribute names; after writes without `dry_run` support (`flow_element_add_post`, `i18n_by_key_put`) read the element with `bpmn_process_element_get`. The XML round trip does not catch invented attribute names.
 5. `issues_summary_by_bpmn_process_get` — BPMN correctness; inspect `LOCALE_NOT_MAINTAINED` issues for language gaps before delivery or publishing.
@@ -166,7 +166,7 @@ Then follow "Create a phone agent" in the `loyjoy-headless` skill's `references/
 
 ### Editing an existing custom instruction in Connected mode
 
-1. Locate the instruction with `bpmn_process_xml_get` (`grep`) and read its full current text and `revision` with `bpmn_process_element_get`.
+1. Locate the instruction with `bpmn_process_xml_grep_get` and read its full current text and `revision` with `bpmn_process_element_get`.
 2. Apply the methodology in this skill and obtain approval for the complete replacement text.
 3. Write with `bpmn_process_element_attributes_patch(process_id, element_id, body={"name":"text","value":"..."})`: first with `dry_run=true`, then with `expected_revision`.
 4. Check the dry-run diff, then run `issues_summary_by_bpmn_process_get` and `bpmn_processes_versions_diff_get`; inspect locale warnings as well as blocking findings.
@@ -271,7 +271,7 @@ python3 scripts/prompt_check.py custom_block.txt \
     --budget single|service|complex
 ```
 
-Write the current custom block and the extracted standard prompt to files first (in Connected mode, take the block from `bpmn_process_element_get` or `bpmn_process_xml_get` with `grep`, the standard from the monorepo). The checker reports:
+Write the current custom block and the extracted standard prompt to files first (in Connected mode, take the block from `bpmn_process_element_get` or `bpmn_process_xml_grep_get`, the standard from the monorepo). The checker reports:
 
 | Check | What it catches |
 | --- | --- |
@@ -365,7 +365,7 @@ These are the mistakes made while fixing other mistakes. They cost more test cal
 
 ## Tool-Inventar abgleichen
 
-Prompt and tool configuration must match. In Connected mode, inspect the configured tool elements with `bpmn_process_xml_get` (`grep`) or `bpmn_process_element_get`. Reconcile on every job.
+Prompt and tool configuration must match. In Connected mode, inspect the configured tool elements with `bpmn_process_xml_grep_get` or `bpmn_process_element_get`. Reconcile on every job.
 
 1. Derive the required tool set from the use cases (knowledge search, email, transfer, hangup, booking, custom integrations).
 2. Compare against what is actually configured.
