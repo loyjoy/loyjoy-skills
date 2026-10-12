@@ -101,7 +101,7 @@ Every tool takes the confirmed `tenant_id`; request bodies go into the argument 
 
 1. `list_tenants` and `bpmn_processes_get` — confirm the tenant and resolve an existing agent by name. Never guess IDs.
 2. `bpmn_process_xml_get` with `grep` and `bpmn_process_element_get` — read the smallest relevant XML fragments: the custom instruction, the configured tools, and the model configuration. Use `bpmn_process_xml_get` without `grep` only when the whole structure is genuinely needed.
-3. `bpmn_process_create_post`, `bpmn_process_element_attributes_patch`, `bpmn_process_elements_post` — create or edit the staging process. Update an instruction with `bpmn_process_element_attributes_patch(..., body={"name":"text","value":"..."})`. Create a missing one with `bpmn_process_elements_post(body={"parent_id":..., "element_type":"instruction", "initial_attrs":{"type":"custom","text":"..."}})`.
+3. `bpmn_processes_post`, `bpmn_process_element_attributes_patch`, `bpmn_process_elements_post` — create or edit the staging process. Update an instruction with `bpmn_process_element_attributes_patch(..., body={"name":"text","value":"..."})`. Create a missing one with `bpmn_process_elements_post(body={"parent_id":..., "element_type":"instruction", "initial_attrs":{"type":"custom","text":"..."}})`.
 4. Verification — preview every write with `dry_run=true` and check its `diff` for the exact attribute names; after writes without `dry_run` support (`flow_element_add_post`, `i18n_by_key_put`) read the element with `bpmn_process_element_get`. The XML round trip does not catch invented attribute names.
 5. `issues_summary_by_bpmn_process_get` — BPMN correctness; inspect `LOCALE_NOT_MAINTAINED` issues for language gaps before delivery or publishing.
 6. `bpmn_processes_versions_diff_get` — review the complete production-to-staging change.
@@ -155,7 +155,7 @@ Do not create an empty process while essential requirements are unknown. Work th
 
 Then follow "Create a phone agent" in the `loyjoy-headless` skill's `references/examples.md`. Its tool arguments and validation sequence are authoritative. The phone-specific gates:
 
-1. `bpmn_process_create_post`, then `bpmn_process_element_get` on the new process.
+1. `bpmn_processes_post`, then `bpmn_process_element_get` on the new process.
 2. Set `name="loyjoy:type"` to `value="phone_agent"` on `element_id=process_id` with `bpmn_process_element_attributes_patch`; check the dry-run diff.
 3. Add exactly one `flow_element_add_post(bpmn_process_id=process_id, body={"tag":"subProcess","type":"AI_AGENT_SUBPROCESS","parent_id":process_id,"index":0})`, retain its ID, read it back with `bpmn_process_element_get`.
 4. Under that subprocess, add one custom `instruction` extension element with `type=custom` and the complete approved text; check the dry-run diff.
