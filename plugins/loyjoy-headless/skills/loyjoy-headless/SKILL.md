@@ -51,7 +51,7 @@ Writes on a staging process go through server-side guards. Use them deliberately
 
 Before the first write in any edit task, confirm that staging is in sync with production. Any pre-existing diff will silently ride along with your changes when the process is next published, so surface it and let the user decide.
 
-1. Call `bpmn_processes_versions_diff_get(tenant_id, bpmn_process_id)` without `left_version` or `right_version`. The defaults (`left_version=prod`, `right_version=staging`) compare production against staging and reveal any changes not yet published.
+1. Call `bpmn_processes_versions_diff_get(tenant_id, bpmn_process_id)` without `left_version` or `right_version`. The defaults (`left_version=prod`, `right_version=staging`) compare production against staging and reveal any changes not yet published. On a process that was **never published**, the server answers `HTTP 404` because no `prod` version exists. Treat that as "nothing is live yet", skip the publish-before-edit question, and do not re-run the call with other versions.
 2. If `data.is_identical` is true, continue with the edit task.
 3. If the diff shows changes:
    1. Summarize the pending changes to the user.
@@ -105,7 +105,7 @@ Templates are read-only scaffolds that show how a use case is expressed in BPMN 
 
 ## Create a new agent
 
-1. Call `bpmn_processes_post(tenant_id, body={"name":..., "default_locale":..., "folder":...})` to create a staging process. This is the same `POST /app/bpmn_processes` endpoint the Manager UI uses, so the process is stored in staging and seeded, not bare. The server generates the process id and returns the process in `data` (`data.id`). For the default (chat) agent the seed adds the two preview messages, a WELCOME subprocess and an AI agent module; for `type="ai_agent"` or `type="phone_agent"` only the preview messages are added, so you build their modules explicitly.
+1. Call `bpmn_processes_post(tenant_id, seed=true, body={"name":..., "default_locale":..., "locales":[<default>], "folder":..., "type":...})` to create a staging process. `seed=true` is required: **without it the server stores a bare process** with no preview messages, no WELCOME subprocess, and no start/end events. Include `locales` in the body, or the seeded preview messages stay empty: the seed only fills the locales present on the process, and nothing carries `default_locale` over to `locales`. This mirrors the Manager UI create call (`seed: true`, `locales: [currentLocale]`). The server generates the process id and returns the process in `data` (`data.id`). For the default (chat) agent the seed adds the two preview messages, a WELCOME subprocess and an AI agent module; for `type="ai_agent"` or `type="phone_agent"` only the preview messages are added, so you build their modules explicitly.
 2. Fill in subprocesses with `flow_element_add_post` (with the process id as `parent_id` for top-level subprocesses) and nested extension elements with `bpmn_process_elements_post`. Consult `templates_get` first if the user wants a use-case-shaped scaffold rather than a truly blank agent.
 3. Configure scalar and list attributes with `bpmn_process_element_attributes_patch`. Create instructions with `bpmn_process_elements_post(body={"parent_id":..., "element_type":"instruction", "initial_attrs":{"type":"custom","text":"..."}})`. Read the process's configured `loyjoy:locales` before creating text. Create each required localized text with `i18n_by_key_put` and its schema- and template-derived `key` `<slot>/<parent-id>`, once per configured locale.
 4. Fill the agent branding from the user's prompt whenever it is clear enough (for example brand name, tone, colors, greeting style, or similar brand cues). If the prompt does not contain enough information to choose sensible branding, ask the user for the missing branding details before configuring it.
@@ -156,7 +156,7 @@ Read two more things out of the same match while you are there: the declared typ
 3. Report the returned `previous_value` and `new_value` from `data.result` for attribute and list writes. `previous_value` is omitted when the attribute had no value before. For a newly added element, report its returned `element_id` and the verified initial attributes.
 4. Verify the write as described in "Verify every write" before the next write, so a wrong attribute name is caught while you still remember what you sent.
 5. After all related text writes are complete, call `issues_summary_by_bpmn_process_get(tenant_id, id)`. Inspect `LOCALE_NOT_MAINTAINED` issues for affected i18n elements and resolve language gaps introduced by the task. Do not silently invent translations for pre-existing findings; report those separately to the user. Do not treat `is_valid=true` as a runtime or content-quality test; non-blocking locale issues may still be present in `issues`.
-6. Call `bpmn_processes_versions_diff_get(tenant_id, bpmn_process_id)` again with default versions. Summarize the resulting diff to the user so they can see exactly what will enter production if published — this is the final review artefact and the natural bookend to the pre-edit diff check.
+6. Call `bpmn_processes_versions_diff_get(tenant_id, bpmn_process_id)` again with default versions (expect `HTTP 404` on a process that was never published). Summarize the resulting diff to the user so they can see exactly what will enter production if published — this is the final review artefact and the natural bookend to the pre-edit diff check.
 7. Never invoke `bpmn_process_publish_post` unless the user explicitly asked for it.
 
 
@@ -244,7 +244,7 @@ Before publishing:
 
 1. Make sure every write of the task was verified as described in "Verify every write".
 2. Call `issues_summary_by_bpmn_process_get(tenant_id, id)`, require `blocking_count=0`, and review every `LOCALE_NOT_MAINTAINED` issue unless the user has explicitly approved the affected localized values.
-3. Call `bpmn_processes_versions_diff_get(tenant_id, bpmn_process_id)` and verify that staging contains only the changes the user intends to publish.
+3. Call `bpmn_processes_versions_diff_get(tenant_id, bpmn_process_id)` and verify that staging contains only the changes the user intends to publish (or skip it with `HTTP 404` on a process that was never published).
 4. Give a concise summary of what will enter production.
 5. Call `bpmn_process_publish_post(tenant_id, body={"bpmn_process_id": ..., "comment": "..."})` with a meaningful publication comment describing the change.
 
