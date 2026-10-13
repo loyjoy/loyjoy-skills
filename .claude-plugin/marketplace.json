@@ -30,7 +30,7 @@
       "displayName": "LoyJoy Phone Agent Builder",
       "source": "./plugins/loyjoy-phone-agent-builder",
       "description": "Create, configure, iterate, and debug LoyJoy phone agents and their custom voice prompts, with a realtime-model gate and OpenAI Realtime prompting-guide conformance checks.",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "category": "productivity",
       "author": {
         "name": "LoyJoy GmbH",
