@@ -13,9 +13,10 @@ The skill is meant for internal LoyJoy use and for sharing with customers. It na
 
 ## Reference files
 
-This file carries the workflow and the rules that apply to every job. Three reference files carry the detail; read the relevant one when the step calls for it.
+This file carries the workflow and the rules that apply to every job. Four reference files carry the detail; read the relevant one when the step calls for it.
 
 - `references/patterns.md` — recommended section structure for the custom block, the full pattern catalog, the anti-pattern list, and the template skeleton. Read when drafting or auditing a block.
+- `references/working-copy.md` — the session working file: the custom block as a file, the iteration loop, snapshots, and the handover rules. Read when drafting or iterating, and before writing a block to the platform.
 - `references/openai-guide.md` — conformance with the OpenAI Realtime prompting guide: section mapping, formatting rules, easily missed elements, and LoyJoy's declared deviations. Read before every delivery.
 - `references/debugging-and-delivery.md` — debugging workflow, symptom-to-layer routing table, side workflows (feedback analysis, change-proposal document, stakeholder mail, standard-prompt promotion, advisory setup), and the delivery checklist.
 
@@ -27,13 +28,7 @@ Section names referenced without a file belong to this file.
 
 ## When to start
 
-Invoke this skill when the user wants to:
-- create or configure a complete phone agent in LoyJoy,
-- build a new phone-agent prompt from scratch,
-- optimize an existing prompt from test calls or customer feedback,
-- debug a specific misbehavior,
-- turn a workshop protocol, feature list, or use-case backlog into a working prompt,
-- produce a change-proposal document for a customer.
+Invoke this skill for any phone-agent work: creating or configuring an agent, building or optimizing a prompt (from test calls, customer feedback, or a workshop protocol), debugging misbehavior, or producing a change-proposal document.
 
 ## Rückfragen vor Plan
 
@@ -46,6 +41,8 @@ Ask first when any of the following is true:
 - The source material is a raw workshop protocol, a feedback spreadsheet, or a transcript, i.e. unstructured input with implicit priorities.
 - Two plausible interpretations would lead to materially different prompts.
 - The change touches a live production agent and the desired blast radius is unclear.
+- A rule you are about to write would need a vague quantifier ("generally", "normally") because the real condition is unknown.
+- The alternative behavior to a required negative rule is unknown.
 
 Go straight to work when:
 - The request is a narrow, well-specified single change ("Anrede auf Sie umstellen", "Notfall-Nummer korrigieren").
@@ -53,7 +50,7 @@ Go straight to work when:
 - The user has already answered the same questions earlier in the conversation.
 
 How to ask:
-- One round, bundled. Short, decision-shaped questions, not open prose.
+- One round, bundled. Use AskUserQuestion where available, with short, decision-shaped options, not open prose questions.
 - Maximum four questions. Prioritize the ones that change the structure of the prompt, not the wording.
 - State your own recommendation per question. The user wants a sparring partner, not a form.
 - Never ask for information you can read yourself via MCP.
@@ -68,6 +65,8 @@ Establish it in this order:
 2. If the user does not know, ask which model class the deployment runs on and do not proceed with a draft until it is answered.
 3. Only if the question genuinely cannot be answered in this session, write for the weakest plausible model (the non-reasoning class) and state that assumption in the first line of the delivery. Rules calibrated for the weaker model also work on the stronger one; the reverse is false.
 
+Every prompt delivery, change proposal, and stakeholder mail states the model the prompt was written for. A custom block handed over without that line will eventually be pasted onto a different model and blamed for the result.
+
 ### Model classes and what they change
 
 | Class | Examples | Reasoning | Prompt implications |
@@ -80,10 +79,6 @@ Known behavior deltas worth asking about before promising anything:
 - `gpt-realtime-2.1` is tuned for open conversation and is reported to regress on deterministic, branched flows: unsolicited narration, commentary-channel leakage, and literal matching of examples instead of semantic intent. On a strictly scripted agent, verify the flow on real calls before migrating, and cut example lists further than you would on 1.5.
 - Azure-hosted `gpt-realtime-1.5` in the EU data zone lacks Semantic VAD. Turn-taking complaints on that deployment are an infrastructure item, not a prompt item.
 - Model names and availability change. Confirm the configured model per tenant; never infer it from this table.
-
-### Record the model in the delivery
-
-Every prompt delivery, change proposal, and stakeholder mail states the model the prompt was written for. A custom block handed over without that line will eventually be pasted onto a different model and blamed for the result.
 
 ## Arbeitsmodus: Advisory oder Connected
 
@@ -137,15 +132,16 @@ MCP can reach levels 1 and 2. It cannot prove level 3, and no test call can be p
 2. Connected: confirm the tenant, resolve the process, read the smallest relevant XML fragments. Record the instruction's BPMN element ID and current `text`. Advisory: request the current custom block as text.
 3. **Fix the target model (see Modell festlegen). Do not draft before this is answered.**
 4. Read the current LoyJoy standard voice prompt from the monorepo (see Den Standard-Prompt lesen). Do not ask the user which version is live. The custom block complements the standard, it does not duplicate it.
-5. Identify the project type: new build, optimization, debugging, or proposal document.
-6. Apply the Rückfragen-vor-Plan gate. Collect remaining constraints in one bundled round (see Clarification checklist).
-7. Reconcile the tool inventory (see Tool-Inventar abgleichen).
-8. Draft using the section structure and patterns in `references/patterns.md`. When iterating, always return the full updated custom block, not just the diff.
-9. Run `scripts/prompt_check.py` (Prompt-Budget und Redundanzprüfung), then check the block against `references/openai-guide.md`.
-10. Run the anticipation pass over the scenario matrix (see Antizipation statt Testanruf) and deliver its result with the prompt.
-11. Connected: verify every write (dry-run diff or element read); before delivery run model checking, review locale issues, inspect the production-to-staging diff.
-12. Work through the delivery checklist in `references/debugging-and-delivery.md`.
-13. Report the three completeness levels separately. Publish only on explicit approval. Leave the real voice test visible as an open requirement until it has happened.
+5. Materialize the session working files `custom.txt` and `standard.txt` (see `references/working-copy.md`). From here on the block lives in the file and is never reprinted in the chat.
+6. Identify the project type: new build, optimization, debugging, or proposal document.
+7. Apply the Rückfragen-vor-Plan gate. Collect remaining constraints in one bundled round (see Clarification checklist).
+8. Reconcile the tool inventory (see Tool-Inventar abgleichen).
+9. Draft and iterate on the session working file, using the section structure and patterns in `references/patterns.md` (see `references/working-copy.md`).
+10. Run `scripts/prompt_check.py` (Prompt-Budget und Redundanzprüfung), then check the block against `references/openai-guide.md`.
+11. Run the anticipation pass over the scenario matrix (see Antizipation statt Testanruf) and deliver its result with the prompt.
+12. Connected: round-trip check after every write; before delivery run model checking, review locale issues, inspect the production-to-staging diff.
+13. Work through the delivery checklist in `references/debugging-and-delivery.md`.
+14. Report the three completeness levels separately. Publish only on explicit approval. Leave the real voice test visible as an open requirement until it has happened.
 
 When test calls show problems, diagnose with the workflow and the layer table in `references/debugging-and-delivery.md` before changing anything.
 
@@ -153,7 +149,7 @@ When test calls show problems, diagnose with the workflow and the layer table in
 
 Do not create an empty process while essential requirements are unknown. Work through the Clarification checklist first.
 
-Then follow "Create a phone agent" in the `loyjoy-headless` skill's `references/examples.md`. Its tool arguments and validation sequence are authoritative. The phone-specific gates:
+Then follow "Create a phone agent" in the `loyjoy-headless` skill's `references/examples.md`; its tool arguments and validation sequence are authoritative. The phone-specific gates:
 
 1. `bpmn_processes_post`, then `bpmn_process_element_get` on the new process.
 2. Set `name="loyjoy:type"` to `value="phone_agent"` on `element_id=process_id` with `bpmn_process_element_attributes_patch`; check the dry-run diff.
@@ -167,7 +163,7 @@ Then follow "Create a phone agent" in the `loyjoy-headless` skill's `references/
 ### Editing an existing custom instruction in Connected mode
 
 1. Locate the instruction with `bpmn_process_xml_grep_get` and read its full current text and `revision` with `bpmn_process_element_get`.
-2. Apply the methodology in this skill and obtain approval for the complete replacement text.
+2. Apply the methodology in this skill on the session working file and obtain approval for the complete replacement text (see `references/working-copy.md`).
 3. Write with `bpmn_process_element_attributes_patch(process_id, element_id, body={"name":"text","value":"..."})`: first with `dry_run=true`, then with `expected_revision`.
 4. Check the dry-run diff, then run `issues_summary_by_bpmn_process_get` and `bpmn_processes_versions_diff_get`; inspect locale warnings as well as blocking findings.
 
@@ -183,7 +179,7 @@ Before drafting, each item must be known from the brief, readable via MCP, or as
 - Whether a knowledge base exists at launch or the agent must work without one.
 - Email recipients for transcripts, callback requests, lead handoffs.
 - Transfer target: real telephony transfer with hidden number, or spoken referral only.
-- Working hours of the receiving human team, and whether the platform injects the current time of day rather than only the date.
+- Working hours of the receiving human team.
 - Emergency or safety scenarios requiring special routing (outages, gas leaks, claims with injuries, accidents).
 - Sensitive data the agent must never collect or disclose.
 - Number fields to capture (customer number, contract number, meter reading, booking reference) and whether DTMF keypad entry is available.
@@ -230,11 +226,13 @@ services/loyjoy-manager/loyjoy-manager-core/src/main/java/
   com/loyjoy/manager/service/instructions/impl/InstructionsSeedServiceImpl.java
 ```
 
-The final system message is assembled at runtime in `getSystemMessageWithInstructions(...)` (`services/loyjoy-runtime/loyjoy-runtime-ai/.../util/AiAgentSubProcessUtils.java`), which concatenates the active instructions with blank lines. Chat agents use a different set (`ROLE_DEFAULT`, `BASE`, `OUTPUT_FORMAT_MARKDOWN`, `REPLY_LENGTH_DEFAULT`, `CONTEXT_WEBSITE`, `ANSWER_LANGUAGE_DEFAULT`), which is why chat rules must never be copied into a voice block.
+The final system message is assembled at runtime in `getSystemMessageWithInstructions(...)` (`services/loyjoy-runtime/loyjoy-runtime-ai/.../util/AiAgentSubProcessUtils.java`), which concatenates the active instructions with blank lines. Chat agents assemble a different set of blocks, which is why chat rules must never be copied into a voice block.
 
 Two properties of the current standard that change how a custom block is written:
 - `PHONE_PRONUNCIATION_DEFAULT` is written in German while the other blocks are English. A tenant served in another language needs an explicit language override, and a pronunciation rule in that language, in the custom block.
 - The phone tool budget is four calls per user message and resets with every new user message. A use case that needs more lookups than that per turn has to be restructured, not prompted harder.
+
+The custom block uses the same template strings as the standard: `${...}` resolves at runtime, including a ternary operator and function calls such as `formattedLocalDateTime("HH")`, `localDateDayOfWeek()`, or `arrayIncludes("[2, 3]", 3)`. The full list is in the LoyJoy docs at `agents/modules/functions/functions.md`. Use it to inject the current time or state (e.g. "Servicecenter ist gerade geöffnet / geschlossen") instead of leaving the model to derive it. Placement of dynamic values follows Pattern: Dynamischer Zustand über Template-Ausdruck in `references/patterns.md`.
 
 Extract the standard into a local file for the mechanical checks:
 
@@ -258,6 +256,10 @@ A phone-agent prompt is a long-lived artifact changed by several people over mon
 8. **One term, one meaning.** Reserve a phrase for exactly one actor and one action. Before adding a rule, search the prompt for the terms you are about to use. A phrase that means one thing for the caller and another for the agent will collapse into a loop.
 9. **Length discipline.** See Prompt-Budget und Redundanzprüfung. Before adding, check whether an existing section can absorb the change.
 10. **No dead weight.** Rules for dropped use cases, removed tools, or scenarios that never occurred get deleted, not commented out.
+11. **Formulate actively.** Where an active form exists, the prompt uses it; passive voice and negation are the exception, not the default. Legitimate negative rules follow Entfernen vor Verbieten.
+12. **Every rule contains a concrete action.** A rule without a concrete verb for what is said or done is a description, and the agent does not follow descriptions reliably.
+13. **No vague quantifiers.** "generally", "normally", "meistens", "in der Regel" move the decision into the model. Name the condition; if it is unknown, ask for it (Rückfragen vor Plan) instead of writing vaguely.
+14. **No terms opaque to the model.** Platform vocabulary ("tenant", "Mandant", "staging") tells the call agent nothing; the prompt states what they mean for the caller (e.g. the customer name instead of "[tenant]").
 
 ## Prompt-Budget und Redundanzprüfung
 
@@ -271,14 +273,19 @@ python3 scripts/prompt_check.py custom_block.txt \
     --budget single|service|complex
 ```
 
-Write the current custom block and the extracted standard prompt to files first (in Connected mode, take the block from `bpmn_process_element_get` or `bpmn_process_xml_grep_get`, the standard from the monorepo). The checker reports:
+Write the current custom block and the extracted standard prompt to files first — these are the session working files (see `references/working-copy.md`; in Connected mode, take the block from `bpmn_process_element_get` or `bpmn_process_xml_grep_get`, the standard from the monorepo).
+
+If `scripts/prompt_check.py` is missing from your installation, write an equivalent throwaway script in the session that implements the checks below and run that. **Do not perform these checks by hand under any circumstances.**
+
+The checker reports:
 
 | Check | What it catches |
 | --- | --- |
-| `size` | words, characters, token estimate, verdict against budget and hard ceiling |
-| `duplicate` | sentences inside the block that repeat each other above 70 percent similarity |
+| `size` | words, characters, token estimate (German: characters divided by three), verdict against budget and hard ceiling |
+| `duplicate` | sentences inside the block that repeat each other above 70 percent similarity, and a shorter sentence fully contained in a longer one (partial duplicate) |
 | `standard` | sentences that duplicate a standard rule, which must be deleted or declared as an override |
 | `sections` | duplicate section names, and shared sections no use case references |
+| `topics` | a topic regulated in more than one section, excluding sentences that merely reference another section; also prints the topic map |
 | `crossref` | "siehe X" pointing at a section that does not exist |
 | `tools` | tool lines without an eagerness class, tools no use case uses |
 | `search` | a term appearing in both a must-search and a no-search rule |
@@ -286,7 +293,7 @@ Write the current custom block and the extracted standard prompt to files first 
 | `primitives` | validation that depends on counting digits |
 | `flow` | a stateful sequence written as a bullet list instead of a numbered flow |
 | `variety` | sample phrases without an anti-lock-in line, or no variety rule at all |
-| `date` | a hardcoded date without a date template |
+| `date` | a hardcoded date without a date template; dynamic template expressions placed in the middle instead of at the end |
 
 Exit code 1 means at least one ERROR. **Errors are fixed before delivery.** Warnings are decided deliberately and the decision is stated; they are not ignored silently. INFO lines are context, not findings.
 
@@ -307,7 +314,7 @@ Over budget the prompt still works, but every further change gets more expensive
 
 ### Self-critique pass
 
-The checker does not read for meaning. After it comes back clean, re-read the block once against four questions and fix what you find: which instructions are ambiguous, which terms are undefined, which pairs conflict, which assumptions are unstated. Apply fixes surgically; a rewrite at this stage loses the review history.
+The checker does not read for meaning. After it comes back clean, re-read the block once against six questions and fix what you find: which instructions are ambiguous, which terms are undefined, which pairs conflict, which assumptions are unstated, which topic is regulated in more than one section (the checker's topics map names the candidates), and which negative rule names no alternative behavior. Apply fixes surgically; a rewrite at this stage loses the review history.
 
 ### Report
 
@@ -348,6 +355,8 @@ Negative rules are legitimate, and belong in the prompt explicitly, for:
 - scope boundaries against caller-initiated topics the prompt never mentions (competitors, off-topic chat),
 - overriding standard-prompt behavior that cannot be edited per tenant,
 - suppressing a model tendency with no source in the prompt at all (invented tool names, invented URLs, defaulting to the free tier).
+
+A negative rule always names the alternative behavior. If the alternative is unknown, ask the user what the agent should do instead before writing the rule.
 
 Judgment rule: if you can point to the sentence that causes the behavior, remove that sentence. If you cannot, a negative rule is justified. State which of the two you did and why, so the user can disagree.
 
@@ -394,7 +403,7 @@ A tenant-specific override (e.g. a pronunciation rule) is stated explicitly in t
 - Compact answers. No filler, no unnecessary em dashes.
 - Numbered lists where the user needs to reference items by number.
 - Honest diagnostics. When a problem cannot be solved at the requested layer, say so plainly and route it.
-- When iterating, always return the full updated artifact, not just the diff.
+- When iterating, edit the session working file and report the change in one or two sentences; never reprint the artifact in the chat (see `references/working-copy.md`). Hand over the complete final file, or write it to the platform, after approval.
 - Sparring tone: push back when the proposed change creates a new problem, especially when it would add scar tissue instead of removing a cause, or when a literal reading would overcorrect.
 - When the user proposes a better solution than yours, say so plainly and adopt it.
 - Mark exactly what is new and what was removed. Removals matter as much as additions.

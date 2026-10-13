@@ -16,9 +16,10 @@ Part of [LoyJoy Skills](https://github.com/loyjoy/loyjoy-skills) — the officia
 
 ## Structure
 
-`SKILL.md` carries the workflow. Detail lives in three reference files loaded on demand:
+`SKILL.md` carries the workflow. Detail lives in four reference files loaded on demand:
 
 - `references/patterns.md` — custom-block section structure, pattern catalog, anti-patterns, template skeleton.
+- `references/working-copy.md` — the session working file: block-as-file iteration, snapshots, handover rules.
 - `references/openai-guide.md` — OpenAI Realtime prompting-guide conformance and LoyJoy's declared deviations.
 - `references/debugging-and-delivery.md` — debugging workflow, symptom-to-layer table, side workflows, delivery checklist.
 

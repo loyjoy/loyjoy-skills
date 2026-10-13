@@ -44,7 +44,7 @@ Check these explicitly on every audit. Each is cheap to add and each shows up as
 5. **Per-tool eagerness class** (see Pattern: Tool-Eagerness und Bridging).
 6. **Explicit escalation triggers** (see Pattern: Eskalations-Trigger).
 7. **Exit criteria per conversation state**, minimal and concrete.
-8. **Self-critique pass before delivery** (see Prompt-Budget und Redundanzprüfung, step 5).
+8. **Self-critique pass before delivery** (see Prompt-Budget und Redundanzprüfung, Self-critique pass).
 
 ### Where LoyJoy deliberately departs from the guide
 
