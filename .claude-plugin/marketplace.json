@@ -12,7 +12,7 @@
       "displayName": "LoyJoy Headless",
       "source": "./plugins/loyjoy-headless",
       "description": "Manage LoyJoy AI Agents in natural language: inspect and edit agent configurations, compare staging against production, and publish, through the LoyJoy Manager MCP server.",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "category": "productivity",
       "author": {
         "name": "LoyJoy GmbH",
