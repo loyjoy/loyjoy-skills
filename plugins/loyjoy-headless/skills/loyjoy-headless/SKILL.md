@@ -111,6 +111,11 @@ Templates are read-only scaffolds that show how a use case is expressed in BPMN 
 4. Fill the agent branding from the user's prompt whenever it is clear enough (for example brand name, tone, colors, greeting style, or similar brand cues). If the prompt does not contain enough information to choose sensible branding, ask the user for the missing branding details before configuring it.
 
 
+## Make customer-facing chat agents attractive
+
+Before creating a customer-facing chat agent or prototype, and whenever the user asks to make an agent look better, read [references/chat-ux.md](references/chat-ux.md). It lists the branding defaults, question types, product card settings, comparison pattern and visual check that turn a form-like chat into a calm, app-like experience.
+
+
 ## Inspect an agent
 
 1. Call `bpmn_processes_get(tenant_id)` to resolve the requested agent to a process id. Ask the user when multiple processes plausibly match. `search_get(tenant_id, q)` finds processes, home views, catalogs, articles, and flow elements by text when the name is vague.
