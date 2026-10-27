@@ -113,7 +113,7 @@ Templates are read-only scaffolds that show how a use case is expressed in BPMN 
 
 ## Make customer-facing chat agents attractive
 
-Before creating a customer-facing chat agent or prototype, and whenever the user asks to make an agent look better, read [references/chat-ux.md](references/chat-ux.md). It lists the branding defaults, question types, product card settings, comparison pattern and visual check that turn a form-like chat into a calm, app-like experience.
+Before creating a customer-facing chat agent or prototype, and whenever the user asks to make an agent look better, read [references/chat-ux.md](references/chat-ux.md). It lists the branding defaults, question types, product card settings, interactive web component cards (configurator and comparison, combined with the AI agent) and the visual check that turn a form-like chat into a calm, app-like experience. For a guided decision with many related questions, offer an interactive card as an option.
 
 
 ## Inspect an agent
