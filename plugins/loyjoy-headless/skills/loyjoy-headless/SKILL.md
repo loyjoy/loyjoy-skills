@@ -179,6 +179,15 @@ Before assembling any new module, subprocess, `dataCollectionQuestion`, `bpmnSub
 Preview every structural write with `dry_run=true` first and read `data.diff`, `data.roundtrip.is_identical`, and `data.issues`. Only then repeat the same call without `dry_run` and with `expected_revision`. Structural writes are the class of change most likely to smuggle in an invented attribute — an unknown `initial_attrs` key, a hand-picked enum spelling, a misspelled attribute set through the follow-up patch. After the complete structural change is assembled, call `issues_summary_by_bpmn_process_get` once. Details in "Verify every write".
 
 
+## Variables written by a web component module are scoped
+
+A web component writes values back through its `variables` event (see the web component module documentation). Those values are not stored under the name the web component sent: the runtime appends the id of the `WEB_COMPONENT_SUBPROCESS` module, so a value sent under `filename` is stored as `filename_<module-id>`, the module id with every dash replaced by an underscore, e.g. `filename_59c2f4d0_0123_4e56_89ab_cdef01234567`. The scoping exists so that values from the potentially untrusted web component context cannot overwrite regular process variables, and they are written to the process only, never to the customer user.
+
+When a change reads or references such a value later in the process, a mapping, a jump condition, a follow-up message, or an export, use the effective name, never the name from the web component code:
+
+1. Resolve the module id with `bpmn_process_xml_grep_get(id=process_id, grep="WEB_COMPONENT_SUBPROCESS", context=2)` or `bpmn_process_element_get` on the module. The `id` attribute of the subProcess is the UUID the variable name is built from.
+2. Reference the variable as `<key>_<module-id>` with every `-` in the id replaced by `_`, and confirm the exact name in the dry-run diff of your write. Do not invent it from the web component's `variables` payload alone.
+
 ## Edit an agent with raw XML
 
 Before following these steps, answer one question: which specific narrow tool fails to express this change, and why? A change that touches one element always has a narrow tool. If the honest answer is that a narrow call was rejected, fix the call rather than routing around it; the rejection is the server protecting the process. Valid reasons to be here are a refactor across many elements, a migration, or a documented gap in the tool surface. If you cannot name the reason, go back.
