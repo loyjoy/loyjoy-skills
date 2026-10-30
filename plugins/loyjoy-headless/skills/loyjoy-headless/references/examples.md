@@ -54,6 +54,21 @@ User request: "Add 'gewinnspiel' to the blocked words."
 Send the delta, not the rebuilt array. If two edits race, a delta merges and a full reserialization silently drops the other edit.
 
 
+## Add an interactive web component card
+
+User request: "Replace the plan questions with an interactive configurator." Read [chat-ux.md](chat-ux.md) section 5 first.
+
+1. Build the component from [web-component-starter.js](web-component-starter.js) and test it locally in a headless browser with sample props; check the logged `variables` event.
+2. `bpmn_process_xml_schema_grep_get(grep="(?i)webComponent|variableAssignmentAttributes", context=3)` to confirm `loyjoy:webComponentTag`, `loyjoy:webComponentUrl`, `loyjoy:webComponentWait` and the `variableAssignment` attributes.
+3. `flow_element_add_post(body={"tag":"subProcess","type":"WEB_COMPONENT_SUBPROCESS","parent_id":process_id,"index":n})` returns the card id. Add a `VARIABLE_SUBPROCESS` the same way at `index` n+1.
+4. On the card, patch `loyjoy:webComponentTag`, `loyjoy:webComponentWait` (`true`), `loyjoy:webComponentUrl` (base64 data URL for prototypes) and `name`. On the variable module, patch `loyjoy:variableVariableStore` (`session`).
+5. `mappings_post(bpmn_process_id, parent_id=card_id, body={"type":"prop","source_variable":"<plain name>","target_field":"<prop>"})` for every input, plus one with `"source_expression":"displayLanguage()","target_field":"lang"`.
+6. `bpmn_process_elements_post(body={"parent_id":variable_module_id,"element_type":"variableAssignment","initial_attrs":{"key":"<plain name>","expression":"<key>_<card id with _>"}})` for every output. Preview the first one with `dry_run=true`.
+7. Delete the questions the card replaces with `bpmn_process_element_delete` and update texts that announced them.
+8. Align the AI prompt that recommends the same thing and the agent instruction (chat-ux.md section 5, rules 6 and 7).
+9. `issues_summary_by_bpmn_process_get`, then `bpmn_processes_versions_diff_get`. Ask the user to approve publishing, then test the published agent end to end.
+
+
 ## Add a module (subprocess)
 
 User request: "Add a live chat handover to the service agent."

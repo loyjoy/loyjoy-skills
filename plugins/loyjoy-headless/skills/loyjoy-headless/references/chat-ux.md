@@ -34,13 +34,24 @@ Read this before creating a customer-facing chat agent or prototype, and wheneve
 2. A product URL (`products_product_url/<product-id>`) makes title and image clickable, independent of the button type.
 3. Keep descriptions to at most three short lines.
 
-## 5. Comparisons
+## 5. Web components: interactive cards
 
-1. For comparing two or three options, a web component table looks far more polished than cards side by side. Lead with the single most important difference as a large figure or visual, then a few rows. Show the selected option clearly.
-2. The component dispatches `CustomEvent('variables', {detail: {variables: {...}, continue: true}})`. LoyJoy stores each variable as `<key>_<module-id with non-alphanumerics replaced by _>`.
-3. After copying a process, conditions still reference the variable names of the old module ids; the copy does not remap them. Grep for the old suffix and patch every `lhsVariable`.
-4. Web components only render in the published agent. Publish before testing.
-5. Escape all non-ASCII characters in the JavaScript (`ä`), otherwise umlauts break.
+A `WEB_COMPONENT_SUBPROCESS` renders custom UI inside the chat. Use it where standard modules look like a form. A tested starter with a configurator and a comparison card is in [web-component-starter.js](web-component-starter.js).
+
+1. Offer an interactive card as an option for the core decision. When a flow asks many related questions to reach one decision (plan choice, product finder, configurator, calculator), propose to the user one card instead of a button questionnaire: all inputs on one card, the result updates live (recommendation, one key figure, a short reason, optionally a small chart), one primary button, and the card locks with a confirmation after submit. Keep a questionnaire for single remaining fields. Do not impose it; a short button questionnaire is still the better choice for short, simple or highly regulated flows.
+2. For comparing two or three options, a web component table looks far more polished than cards side by side. Lead with the most important difference as a large figure, then a few rows. Highlight the recommended option and show the selected one clearly.
+3. Output: the component dispatches `CustomEvent('variables', {detail: {variables: {...}, continue: true}, bubbles: true, composed: true})`. LoyJoy stores each variable scoped as `<key>_<module id with non-alphanumerics replaced by _>`, never under the plain key.
+4. Copy the results back. Place a `VARIABLE_SUBPROCESS` (`loyjoy:variableVariableStore` `session`) right after the card, with one `variableAssignment` per field: `key` is the plain name, `expression` is `<key>_<module_id>`. Otherwise prompts, mails, API mappings and conditions that use the plain names stay empty.
+   The suffix exists for security: values from the web component context are untrusted, because a client can send any payload. Copying them back removes this protection, so:
+   1. Copy back only values you would also accept as free-text input. Never copy them into variables used for authorization, customer or contract ids, or billed prices.
+   2. Validate the values before use, for example accept only the allowed option values with a condition or a `DMN_SUBPROCESS`, especially when they flow into HTML mails, API calls or conditions.
+5. Input: pass values into the card with `mapping` elements of type `prop` (`source_variable`, `target_field`). Pass the language as a `lang` prop with `source_expression` `displayLanguage()`. The component receives all props as one JSON object on its `properties` property or attribute.
+6. Combine the card with the AI agent. Feed the card the same plain variables that the agent's `variables_set` tools write. Then details typed as free text pre-fill the card when the flow returns to it. Tell the agent in its custom instruction which cards exist, that it must not repeat their options, and that saved values pre-fill them.
+7. Keep one source of truth. If a card and an AI prompt both produce a recommendation, pass the card's result into the prompt and instruct the model to use it unchanged. Two independent recommendations will eventually contradict each other.
+8. Design: Shadow DOM, inherit the chat font, take colors from the process branding, max width about 440 px, test at 390 px. One large result figure, compact controls (segmented buttons, steppers, tiles with inline SVG icons), short labels. Mark example figures and indicative prices as such on the card. Show real prices or tariffs only when the customer provides them.
+9. Hosting: assets cannot be uploaded through MCP. For prototypes, minify the script and set `loyjoy:webComponentUrl` to `data:text/javascript;base64,<base64 of the UTF-8 file>`. Base64 keeps umlauts and accents intact without escaping. One bundle can define several custom elements; give every module a URL that loads the bundle. For production, upload the file as module asset in the Manager or host it on the customer's CDN.
+10. After copying a process, conditions and variable assignments still reference the variable names of the old module ids; the copy does not remap them. Grep for the old suffix and patch every `lhsVariable` and `expression`.
+11. Test in two stages. First render the component locally in a headless browser with sample props and log the `variables` event. Web components only render in the published agent, so after the user approves publishing, click through the published agent end to end, including a free-text message while a card is open.
 
 ## 6. Texts and flow
 
