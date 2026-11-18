@@ -10,3 +10,4 @@
 - Additions MUST be as concise as possible.
 
 ### AGENTS.md Owner Input
+- This repo is authoritative for its plugins. Every change MUST be copied unchanged, together with the marketplace entry, to `loyjoy/loyjoy-skills-internal`, since claude.ai only syncs private repos.
