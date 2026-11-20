@@ -22,7 +22,7 @@ Trigger it whenever a LoyJoy agent, process, module, or BPMN process is involved
 3. **Iterate** on real test calls — turn concrete call feedback into concrete prompt changes without regressing existing behavior.
 4. **Debug** misbehavior — trace acknowledge-first, spoken-number, digit-confirmation, and transfer-with-consent issues to their prompt sources, and route the ones that are not prompt-fixable to the right layer.
 5. **Gate on the model** — the target realtime model (`gpt-realtime-1.5`, `gpt-realtime-2.1`, …) is fixed before the first line of prompt text, because it decides length budget, defensiveness, reasoning effort, and how examples are read.
-6. **Keep prompts lean** — `scripts/prompt_check.py` measures size against budget and sweeps for duplicates, overlap with the standard prompt, dangling cross-references, tool inconsistencies, and voice-formatting defects. Errors block delivery.
+6. **Keep prompts lean** — a prompt checker, written in the session from the specification in `references/prompt-check.md`, measures size against budget and sweeps for duplicates, overlap with the standard prompt, dangling cross-references, tool inconsistencies, and voice-formatting defects. Errors block delivery.
 7. **Anticipate instead of guess** — where real test calls are not available, a 20-scenario anticipation matrix predicts behavior against the written prompt and doubles as the call script.
 
 The standard voice prompt is not duplicated in the skill. It is read at runtime through the `instruction_sub_types_get` tool of the LoyJoy Manager MCP server. Voice patterns and chat patterns do not translate between the two channels; the skill handles that boundary explicitly.

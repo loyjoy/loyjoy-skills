@@ -12,7 +12,7 @@
       "displayName": "LoyJoy",
       "source": "./plugins/loyjoy",
       "description": "Manage LoyJoy AI Agents for chat and phone in natural language: inspect and edit agent configurations, build and debug custom voice prompts, compare staging against production, and publish, through the LoyJoy Manager MCP server.",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "category": "productivity",
       "author": {
         "name": "LoyJoy GmbH",
