@@ -10,14 +10,14 @@ Reprinting the full custom block in the chat on every iteration wastes the conve
 
 - Session-local directory, scratch only: `<session-workdir>/.loyjoy-work/<tenant>-<agent>/`. Never committed, never published, never shipped as-is.
 - `custom.txt` — the current custom block. Connected mode: from `bpmn_process_xml_grep_get`. Advisory mode: from the user-provided text.
-- `standard.txt` — the extracted LoyJoy standard voice prompt, as the checker reference (see Den Standard-Prompt lesen in `SKILL.md`).
-- Materialize both before the first draft or edit (Order of operations in `SKILL.md`).
+- `standard.txt` — the LoyJoy standard voice prompt from `instruction_sub_types_get`, as the checker reference (see Den Standard-Prompt lesen, nicht danach fragen in `SKILL.md`). Advisory mode without the standard text: omit it.
+- Materialize them before the first draft or edit (Order of operations in `SKILL.md`).
 
 ## Iteration loop
 
 1. Snapshot the file before each decision point: `custom.r00.txt`, `custom.r01.txt`, … Snapshots are copies, never edited.
 2. Edit `custom.txt` line by line, one logical change per round.
-3. Run `scripts/prompt_check.py custom.txt --standard standard.txt` on every round. Findings name file lines and sections; fix them at those lines. A round ends only when `duplicate`, `standard`, and `topics` report no ERROR; accepted WARNs are named in the round report.
+3. Run `scripts/prompt_check.py custom.txt` on every round, with `--standard standard.txt` when that file exists. Findings name file lines and sections; fix them at those lines. A round ends only when `duplicate`, `standard` (if run), and `topics` report no ERROR; accepted WARNs are named in the round report.
 4. Report the round in the chat in one or two sentences: what changed and why, what was removed. No block text, no diff.
 5. Revert means copying the affected lines back from a snapshot with an edit. No git.
 

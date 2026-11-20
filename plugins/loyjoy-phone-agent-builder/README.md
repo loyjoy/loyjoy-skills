@@ -23,7 +23,7 @@ Part of [LoyJoy Skills](https://github.com/loyjoy/loyjoy-skills) — the officia
 - `references/openai-guide.md` — OpenAI Realtime prompting-guide conformance and LoyJoy's declared deviations.
 - `references/debugging-and-delivery.md` — debugging workflow, symptom-to-layer table, side workflows, delivery checklist.
 
-The standard voice prompt itself is not duplicated here. It is read from the LoyJoy monorepo through the GitHub tools of the LoyJoy Admin MCP server; `SKILL.md` names the exact file and the enum constants a phone agent receives.
+The standard voice prompt itself is not duplicated here. It is read at runtime through the `instruction_sub_types_get` tool of the LoyJoy Manager MCP server; `SKILL.md` names the blocks a phone agent receives.
 
 ## Voice vs. chat
 

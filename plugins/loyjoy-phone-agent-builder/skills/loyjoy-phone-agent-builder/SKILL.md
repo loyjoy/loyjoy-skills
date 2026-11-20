@@ -1,6 +1,6 @@
 ---
 name: "loyjoy-phone-agent-builder"
-description: "Create and configure new LoyJoy phone agents in staging, and build, iterate, or debug their custom voice prompts. Covers the standard-plus-custom architecture, the mandatory realtime-model gate, reading the versioned LoyJoy standard voice prompt from the monorepo, LoyJoy MCP workflows, maintainable prompt structure, a scripted prompt-budget and redundancy check, conformance with the OpenAI Realtime prompting guide, tool reconciliation, common phone use cases, an anticipation pass that replaces unavailable test calls, and the boundary between a configured process and a telephony-ready agent. Use for requests such as \"Erstelle einen vollständigen Phone Agent\", \"Phonebot Prompt\", \"Voice-Agent anpassen\", \"Custom-Prompt für Telefon\", \"Phone Agent Feedback umsetzen\", \"Telefonbot debuggen\", or \"Voice-Prompt optimieren\"."
+description: "Create and configure new LoyJoy phone agents in staging, and build, iterate, or debug their custom voice prompts. Covers the standard-plus-custom architecture, the mandatory realtime-model gate, reading the LoyJoy standard voice prompt through the Manager MCP server, LoyJoy MCP workflows, maintainable prompt structure, a scripted prompt-budget and redundancy check, conformance with the OpenAI Realtime prompting guide, tool reconciliation, common phone use cases, an anticipation pass that replaces unavailable test calls, and the boundary between a configured process and a telephony-ready agent. Use for requests such as \"Erstelle einen vollständigen Phone Agent\", \"Phonebot Prompt\", \"Voice-Agent anpassen\", \"Custom-Prompt für Telefon\", \"Phone Agent Feedback umsetzen\", \"Telefonbot debuggen\", or \"Voice-Prompt optimieren\"."
 ---
 
 # LoyJoy Phone Agent Builder
@@ -131,7 +131,7 @@ MCP can reach levels 1 and 2. It cannot prove level 3, and no test call can be p
 1. Determine the working mode (Connected or Advisory).
 2. Connected: confirm the tenant, resolve the process, read the smallest relevant XML fragments. Record the instruction's BPMN element ID and current `text`. Advisory: request the current custom block as text.
 3. **Fix the target model (see Modell festlegen). Do not draft before this is answered.**
-4. Read the current LoyJoy standard voice prompt from the monorepo (see Den Standard-Prompt lesen). Do not ask the user which version is live. The custom block complements the standard, it does not duplicate it.
+4. Read the current LoyJoy standard voice prompt with `instruction_sub_types_get` (see Den Standard-Prompt lesen, nicht danach fragen). Do not ask the user which version is live. The custom block complements the standard, it does not duplicate it.
 5. Materialize the session working files `custom.txt` and `standard.txt` (see `references/working-copy.md`). From here on the block lives in the file and is never reprinted in the chat.
 6. Identify the project type: new build, optimization, debugging, or proposal document.
 7. Apply the Rückfragen-vor-Plan gate. Collect remaining constraints in one bundled round (see Clarification checklist).
@@ -198,18 +198,15 @@ When a mechanic turns out to be tenant-independent, promote it to the standard i
 
 ### Den Standard-Prompt lesen, nicht danach fragen
 
-The standard is versioned in the LoyJoy monorepo and readable through the GitHub tools of the LoyJoy Admin MCP server. Read it at the start of every job instead of asking the user which version is live.
+The standard voice prompt is maintained by LoyJoy and assembled by the platform at runtime; its text is not stored in the process. Read it through the LoyJoy Manager MCP server at the start of every job instead of asking the user which version is live.
 
-Source of truth, `owner=loyjoy`, `repository=loyjoy`:
+1. Connected: call `instruction_sub_types_get(tenant_id)`. It returns every standard building block with `name`, `instruction_type`, labels, and `text`.
+2. Keep the blocks listed in the table below, in that order, and write their `text` to `standard.txt`.
+3. Advisory: ask the user to paste the standard if they have it; otherwise use the table as the map of what the standard covers, run the checker without `--standard`, and say so in the delivery.
 
-```
-libs/loyjoy-bpmn-pom/loyjoy-bpmn-extension/src/main/java/
-  com/loyjoy/bpmn/extension/ai/instructions/InstructionSubTypesEnum.java
-```
+The blocks a phone agent receives:
 
-Read it with `github_repos_contents_get_string`. The prompt is not a resource file: every building block is a string constant in that enum. The blocks a phone agent receives:
-
-| Constant | Covers |
+| Block | Covers |
 | --- | --- |
 | `ROLE_PHONE` | role, scope boundary against other companies |
 | `BASE_PHONE` | turn-taking, acknowledge-first, bridging before tool calls, search obligation, tool budget (four calls per user message), URLs |
@@ -219,14 +216,7 @@ Read it with `github_repos_contents_get_string`. The prompt is not a resource fi
 | `CONTEXT_DATE` | date injection via `${localDateTime()}` |
 | `NAME_DEFAULT`, `REASONING_DEFAULT`, `PERSONALITY_DEFAULT`, `GUARDRAIL_ALL` | shared with chat agents |
 
-Which blocks a given agent type actually gets is decided in `seedPhoneAgent(...)`:
-
-```
-services/loyjoy-manager/loyjoy-manager-core/src/main/java/
-  com/loyjoy/manager/service/instructions/impl/InstructionsSeedServiceImpl.java
-```
-
-The final system message is assembled at runtime in `getSystemMessageWithInstructions(...)` (`services/loyjoy-runtime/loyjoy-runtime-ai/.../util/AiAgentSubProcessUtils.java`), which concatenates the active instructions with blank lines. Chat agents assemble a different set of blocks, which is why chat rules must never be copied into a voice block.
+At runtime the active instructions are concatenated with blank lines into the final system message. Chat agents receive a different set of blocks, which is why chat rules must never be copied into a voice block.
 
 Two properties of the current standard that change how a custom block is written:
 - `PHONE_PRONUNCIATION_DEFAULT` is written in German while the other blocks are English. A tenant served in another language needs an explicit language override, and a pronunciation rule in that language, in the custom block.
@@ -234,7 +224,7 @@ Two properties of the current standard that change how a custom block is written
 
 The custom block uses the same template strings as the standard: `${...}` resolves at runtime, including a ternary operator and function calls such as `formattedLocalDateTime("HH")`, `localDateDayOfWeek()`, or `arrayIncludes("[2, 3]", 3)`. The full list is in the LoyJoy docs at `agents/modules/functions/functions.md`. Use it to inject the current time or state (e.g. "Servicecenter ist gerade geöffnet / geschlossen") instead of leaving the model to derive it. Placement of dynamic values follows Pattern: Dynamischer Zustand über Template-Ausdruck in `references/patterns.md`.
 
-Extract the standard into a local file for the mechanical checks:
+Pass the extracted standard to the mechanical checks:
 
 ```
 python3 scripts/prompt_check.py custom_block.txt --standard standard_prompt.txt
@@ -273,7 +263,7 @@ python3 scripts/prompt_check.py custom_block.txt \
     --budget single|service|complex
 ```
 
-Write the current custom block and the extracted standard prompt to files first — these are the session working files (see `references/working-copy.md`; in Connected mode, take the block from `bpmn_process_element_get` or `bpmn_process_xml_grep_get`, the standard from the monorepo).
+Write the current custom block to a file first — this is the session working file (see `references/working-copy.md`; in Connected mode, take the block from `bpmn_process_element_get` or `bpmn_process_xml_grep_get`). Write the standard from `instruction_sub_types_get` to `standard.txt` and pass it with `--standard`.
 
 If `scripts/prompt_check.py` is missing from your installation, write an equivalent throwaway script in the session that implements the checks below and run that. **Do not perform these checks by hand under any circumstances.**
 
