@@ -13,16 +13,13 @@ The skill is meant for internal LoyJoy use and for sharing with customers. It na
 
 ## Reference files
 
-This file carries the workflow and the rules that apply to every job. Four reference files carry the detail; read the relevant one when the step calls for it.
+This file carries the workflow and the rules that apply to every job. Five reference files carry the detail; read the relevant one when the step calls for it.
 
 - `references/patterns.md` — recommended section structure for the custom block, the full pattern catalog, the anti-pattern list, and the template skeleton. Read when drafting or auditing a block.
 - `references/working-copy.md` — the session working file: the custom block as a file, the iteration loop, snapshots, and the handover rules. Read when drafting or iterating, and before writing a block to the platform.
 - `references/openai-guide.md` — conformance with the OpenAI Realtime prompting guide: section mapping, formatting rules, easily missed elements, and LoyJoy's declared deviations. Read before every delivery.
 - `references/debugging-and-delivery.md` — debugging workflow, symptom-to-layer routing table, side workflows (feedback analysis, change-proposal document, stakeholder mail, standard-prompt promotion, advisory setup), and the delivery checklist.
-
-One script carries the checks that must not be done by hand:
-
-- `scripts/prompt_check.py` — size against budget, duplicate sentences, overlap with the standard prompt, cross-reference resolution, tool consistency, search-discipline contradictions, and voice-formatting defects. Run it before every delivery.
+- `references/prompt-check.md` — the specification of the prompt checker: size against budget, duplicate sentences, overlap with the standard prompt, cross-reference resolution, tool consistency, search-discipline contradictions, and voice-formatting defects. The plugin ships no code: write the checker from this specification in the session and run it before every delivery.
 
 Section names referenced without a file belong to this file.
 
@@ -137,7 +134,7 @@ MCP can reach levels 1 and 2. It cannot prove level 3, and no test call can be p
 7. Apply the Rückfragen-vor-Plan gate. Collect remaining constraints in one bundled round (see Clarification checklist).
 8. Reconcile the tool inventory (see Tool-Inventar abgleichen).
 9. Draft and iterate on the session working file, using the section structure and patterns in `references/patterns.md` (see `references/working-copy.md`).
-10. Run `scripts/prompt_check.py` (Prompt-Budget und Redundanzprüfung), then check the block against `references/openai-guide.md`.
+10. Run the prompt checker (Prompt-Budget und Redundanzprüfung), then check the block against `references/openai-guide.md`.
 11. Run the anticipation pass over the scenario matrix (see Antizipation statt Testanruf) and deliver its result with the prompt.
 12. Connected: round-trip check after every write; before delivery run model checking, review locale issues, inspect the production-to-staging diff.
 13. Work through the delivery checklist in `references/debugging-and-delivery.md`.
@@ -227,7 +224,7 @@ The custom block uses the same template strings as the standard: `${...}` resolv
 Pass the extracted standard to the mechanical checks:
 
 ```
-python3 scripts/prompt_check.py custom_block.txt --standard standard_prompt.txt
+prompt_check custom.txt --standard standard.txt
 ```
 
 Every rule the checker reports as duplicated against the standard is deleted from the custom block or rewritten as a declared override. There is no third option.
@@ -258,14 +255,14 @@ Run this before every delivery, on every iteration, not only on the first draft.
 ### The checker
 
 ```
-python3 scripts/prompt_check.py custom_block.txt \
-    --standard standard_prompt.txt \
+prompt_check custom.txt \
+    --standard standard.txt \
     --budget single|service|complex
 ```
 
 Write the current custom block to a file first — this is the session working file (see `references/working-copy.md`; in Connected mode, take the block from `bpmn_process_element_get` or `bpmn_process_xml_grep_get`). Write the standard from `instruction_sub_types_get` to `standard.txt` and pass it with `--standard`.
 
-If `scripts/prompt_check.py` is missing from your installation, write an equivalent throwaway script in the session that implements the checks below and run that. **Do not perform these checks by hand under any circumstances.**
+`prompt_check` is a throwaway script you write in the session working directory from `references/prompt-check.md`, once per session, before the first check. It implements the specification exactly; never ship or commit it. **Do not perform these checks by hand under any circumstances.**
 
 The checker reports:
 
