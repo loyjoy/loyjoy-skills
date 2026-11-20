@@ -1,7 +1,8 @@
 {
-  "name": "loyjoy-headless",
-  "description": "Inspect, edit, compare, and publish LoyJoy agent configurations through the LoyJoy Manager MCP server.",
-  "version": "0.3.1",
+  "name": "loyjoy",
+  "displayName": "LoyJoy",
+  "description": "Build, edit, compare, and publish LoyJoy AI Agents for chat and phone, including custom voice prompts for phone agents, through the LoyJoy Manager MCP server.",
+  "version": "0.4.0",
   "author": {
     "name": "LoyJoy GmbH",
     "email": "sebastian.deisel@loyjoy.com",
@@ -12,6 +13,6 @@
   "license": "Apache-2.0",
   "icon": "./.claude-plugin/icon.png",
   "privacyPolicyUrl": "https://www.loyjoy.com/en/privacy/",
-  "keywords": ["loyjoy", "headless", "mcp", "bpmn", "agent-management"],
+  "keywords": ["loyjoy", "ai-agents", "mcp", "bpmn", "agent-management", "phone-agent", "voice", "prompt-engineering"],
   "mcpServers": "./.mcp.json"
 }
