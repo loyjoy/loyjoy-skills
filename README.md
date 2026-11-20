@@ -12,10 +12,12 @@
 
 ## Skills in this repository
 
-| Plugin | What it does |
+All skills ship in one plugin, [`loyjoy`](plugins/loyjoy), together with the preconfigured LoyJoy Manager MCP server.
+
+| Skill | What it does |
 |---|---|
-| [`loyjoy-headless`](plugins/loyjoy-headless) | Inspect, edit, compare, and publish LoyJoy agent configurations through the LoyJoy Manager MCP server. Covers instructions and prompts, modules and subprocesses, knowledge configuration, tools, branding, locales, and publishing workflows. |
-| [`loyjoy-phone-agent-builder`](plugins/loyjoy-phone-agent-builder) | Create, configure, iterate, and debug LoyJoy phone agents and their custom voice prompts. Covers the standard-plus-custom prompt architecture, voice-specific patterns (spoken numbers, digit confirmation, transfer with consent), and debugging from real test calls. |
+| [`loyjoy-headless`](plugins/loyjoy/skills/loyjoy-headless) | Inspect, edit, compare, and publish LoyJoy agent configurations through the LoyJoy Manager MCP server. Covers instructions and prompts, modules and subprocesses, knowledge configuration, tools, branding, locales, and publishing workflows. |
+| [`loyjoy-phone-agent-builder`](plugins/loyjoy/skills/loyjoy-phone-agent-builder) | Create, configure, iterate, and debug LoyJoy phone agents and their custom voice prompts. Covers the standard-plus-custom prompt architecture, voice-specific patterns (spoken numbers, digit confirmation, transfer with consent), and debugging from real test calls. |
 
 More skills are on the way, including analytics reporting, presentation and infographic generation from LoyJoy data, and knowledge management.
 
@@ -25,13 +27,12 @@ More skills are on the way, including analytics reporting, presentation and info
 
 ```bash
 /plugin marketplace add loyjoy/loyjoy-skills
-/plugin install loyjoy-headless@loyjoy-skills
-/plugin install loyjoy-phone-agent-builder@loyjoy-skills
+/plugin install loyjoy@loyjoy-skills
 ```
 
 ### Claude desktop app
 
-Open the plugin browser in the Claude desktop app, add the marketplace `loyjoy/loyjoy-skills`, then install the plugins from the **Discover** tab. The same plugins work in Claude Code and in the desktop app.
+Open the plugin browser in the Claude desktop app, add the marketplace `loyjoy/loyjoy-skills`, then install the **LoyJoy** plugin from the **Discover** tab. The same plugin works in Claude Code and in the desktop app.
 
 ### Other agents
 
@@ -58,11 +59,11 @@ LoyJoy is Made in Germany, hosted in the EU, and designed for GDPR, the EU AI Ac
 
 ### Can I manage my LoyJoy AI Agents with Claude?
 
-Yes. Install the `loyjoy-headless` plugin, connect the LoyJoy Manager MCP server, and ask Claude in plain language — for example *"Add a welcome question to my agent and publish it"* or *"Compare staging against production"*. The skill handles tenant checks, safe editing, and publishing.
+Yes. Install the `loyjoy` plugin, connect the LoyJoy Manager MCP server, and ask Claude in plain language — for example *"Add a welcome question to my agent and publish it"* or *"Compare staging against production"*. The skill handles tenant checks, safe editing, and publishing.
 
 ### What does headless mean here?
 
-Headless describes the decoupling of interface and platform: LoyJoy stays the system of record and the governed execution layer, while your AI assistant becomes an additional interface to it. You keep the visual LoyJoy editor. These plugins simply add a second way in, through MCP, for the people who own the customer relationship.
+Headless describes the decoupling of interface and platform: LoyJoy stays the system of record and the governed execution layer, while your AI assistant becomes an additional interface to it. You keep the visual LoyJoy editor. This plugin simply adds a second way in, through MCP, for the people who own the customer relationship.
 
 ### Do I need to be a developer?
 

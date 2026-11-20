@@ -90,7 +90,7 @@ A tenant may contain a prototype or demo copy while the productive agent lives i
 
 ### Toolchain in Connected mode
 
-Before the first connected write, load the `loyjoy-headless` skill (this plugin's dependency) and follow its rules for tenant selection, targeted reads, staging writes, write verification, model checking, diff review, and publishing. This skill adds the phone-specific decisions; it does not replace the headless safety workflow.
+Before the first connected write, load the `loyjoy-headless` skill of this plugin and follow its rules for tenant selection, targeted reads, staging writes, write verification, model checking, diff review, and publishing. This skill adds the phone-specific decisions; it does not replace the headless safety workflow.
 
 Every tool takes the confirmed `tenant_id`; request bodies go into the argument `body`.
 

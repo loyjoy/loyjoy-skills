@@ -1,47 +1,29 @@
 {
   "name": "loyjoy-skills",
   "description": "Official LoyJoy plugins for building, managing, and publishing LoyJoy AI Agents for chat and phone.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "owner": {
     "name": "LoyJoy GmbH",
     "url": "https://loyjoy.com"
   },
   "plugins": [
     {
-      "name": "loyjoy-headless",
-      "displayName": "LoyJoy Headless",
-      "source": "./plugins/loyjoy-headless",
-      "description": "Manage LoyJoy AI Agents in natural language: inspect and edit agent configurations, compare staging against production, and publish, through the LoyJoy Manager MCP server.",
-      "version": "0.3.1",
+      "name": "loyjoy",
+      "displayName": "LoyJoy",
+      "source": "./plugins/loyjoy",
+      "description": "Manage LoyJoy AI Agents for chat and phone in natural language: inspect and edit agent configurations, build and debug custom voice prompts, compare staging against production, and publish, through the LoyJoy Manager MCP server.",
+      "version": "0.4.0",
       "category": "productivity",
       "author": {
         "name": "LoyJoy GmbH",
         "email": "sebastian.deisel@loyjoy.com",
         "url": "https://loyjoy.com"
       },
-      "homepage": "https://github.com/loyjoy/loyjoy-skills/tree/main/plugins/loyjoy-headless",
+      "homepage": "https://github.com/loyjoy/loyjoy-skills/tree/main/plugins/loyjoy",
       "repository": "https://github.com/loyjoy/loyjoy-skills",
       "license": "Apache-2.0",
-      "keywords": ["loyjoy", "headless", "mcp", "bpmn", "agent-management"],
-      "tags": ["headless", "ai-agents", "customer-service", "conversational-ai", "no-code", "mcp"]
-    },
-    {
-      "name": "loyjoy-phone-agent-builder",
-      "displayName": "LoyJoy Phone Agent Builder",
-      "source": "./plugins/loyjoy-phone-agent-builder",
-      "description": "Create, configure, iterate, and debug LoyJoy phone agents and their custom voice prompts, with a realtime-model gate and OpenAI Realtime prompting-guide conformance checks.",
-      "version": "0.3.4",
-      "category": "productivity",
-      "author": {
-        "name": "LoyJoy GmbH",
-        "email": "sebastian.deisel@loyjoy.com",
-        "url": "https://loyjoy.com"
-      },
-      "homepage": "https://github.com/loyjoy/loyjoy-skills/tree/main/plugins/loyjoy-phone-agent-builder",
-      "repository": "https://github.com/loyjoy/loyjoy-skills",
-      "license": "Apache-2.0",
-      "keywords": ["loyjoy", "headless", "phone-agent", "voice", "prompt-engineering"],
-      "tags": ["headless", "ai-agents", "voice-ai", "customer-service", "telephony", "prompt-engineering"]
+      "keywords": ["loyjoy", "ai-agents", "mcp", "bpmn", "agent-management", "phone-agent", "voice", "prompt-engineering"],
+      "tags": ["ai-agents", "customer-service", "conversational-ai", "voice-ai", "telephony", "no-code", "mcp"]
     }
   ]
 }
